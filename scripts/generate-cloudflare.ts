@@ -16,6 +16,11 @@ import {
 const SECRETS_STORE_ID =
   process.env["CLOUDFLARE_SECRETS_STORE_ID"] ?? DEFAULT_SECRETS_STORE_ID;
 
+/** Matches deployment-pipeline.yml: ghcr.io/${{ github.repository }}:<project-id>-latest */
+const GHCR_IMAGE_REPO = (
+  process.env["GITHUB_REPOSITORY"] ?? "crvouga/chrisvouga.dev"
+).toLowerCase();
+
 const ROOT = execSync("git rev-parse --show-toplevel", { encoding: "utf-8" }).trim();
 const CF_DIR = join(ROOT, "cloudflare");
 const SRC_DIR = join(CF_DIR, "src");
@@ -125,7 +130,7 @@ function generateWranglerToml(): string {
     lines.push(`# ${t.id}`);
     lines.push(`[[containers]]`);
     lines.push(`class_name = "${pascalCase(t.id)}"`);
-    lines.push(`image = "ghcr.io/crvouga/${t.id}:latest"`);
+    lines.push(`image = "ghcr.io/${GHCR_IMAGE_REPO}:${t.id}-latest"`);
     lines.push(`instance_type = "${instanceType(t.id)}"`);
     lines.push(`max_instances = 3`);
     lines.push("");

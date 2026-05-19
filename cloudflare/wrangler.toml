@@ -8,140 +8,140 @@ compatibility_date = "2026-05-19"
 # portfolio
 [[containers]]
 class_name = "Portfolio"
-image = "ghcr.io/crvouga/portfolio:latest"
+image = "ghcr.io/crvouga/chrisvouga.dev:portfolio-latest"
 instance_type = "lite"
 max_instances = 3
 
 # pickflix
 [[containers]]
 class_name = "Pickflix"
-image = "ghcr.io/crvouga/pickflix:latest"
+image = "ghcr.io/crvouga/chrisvouga.dev:pickflix-latest"
 instance_type = "basic"
 max_instances = 3
 
 # headless-combobox-svelte-example
 [[containers]]
 class_name = "HeadlessComboboxSvelteExample"
-image = "ghcr.io/crvouga/headless-combobox-svelte-example:latest"
+image = "ghcr.io/crvouga/chrisvouga.dev:headless-combobox-svelte-example-latest"
 instance_type = "lite"
 max_instances = 3
 
 # headless-combobox-docs
 [[containers]]
 class_name = "HeadlessComboboxDocs"
-image = "ghcr.io/crvouga/headless-combobox-docs:latest"
+image = "ghcr.io/crvouga/chrisvouga.dev:headless-combobox-docs-latest"
 instance_type = "lite"
 max_instances = 3
 
 # todo-app
 [[containers]]
 class_name = "TodoApp"
-image = "ghcr.io/crvouga/todo-app:latest"
+image = "ghcr.io/crvouga/chrisvouga.dev:todo-app-latest"
 instance_type = "basic"
 max_instances = 3
 
 # image-service
 [[containers]]
 class_name = "ImageService"
-image = "ghcr.io/crvouga/image-service:latest"
+image = "ghcr.io/crvouga/chrisvouga.dev:image-service-latest"
 instance_type = "lite"
 max_instances = 3
 
 # connect-four
 [[containers]]
 class_name = "ConnectFour"
-image = "ghcr.io/crvouga/connect-four:latest"
+image = "ghcr.io/crvouga/chrisvouga.dev:connect-four-latest"
 instance_type = "lite"
 max_instances = 3
 
 # normalizer-app
 [[containers]]
 class_name = "NormalizerApp"
-image = "ghcr.io/crvouga/normalizer-app:latest"
+image = "ghcr.io/crvouga/chrisvouga.dev:normalizer-app-latest"
 instance_type = "basic"
 max_instances = 3
 
 # screenshot-service
 [[containers]]
 class_name = "ScreenshotService"
-image = "ghcr.io/crvouga/screenshot-service:latest"
+image = "ghcr.io/crvouga/chrisvouga.dev:screenshot-service-latest"
 instance_type = "lite"
 max_instances = 3
 
 # smart-dog-door
 [[containers]]
 class_name = "SmartDogDoor"
-image = "ghcr.io/crvouga/smart-dog-door:latest"
+image = "ghcr.io/crvouga/chrisvouga.dev:smart-dog-door-latest"
 instance_type = "lite"
 max_instances = 3
 
 # quiz-maker
 [[containers]]
 class_name = "QuizMaker"
-image = "ghcr.io/crvouga/quiz-maker:latest"
+image = "ghcr.io/crvouga/chrisvouga.dev:quiz-maker-latest"
 instance_type = "lite"
 max_instances = 3
 
 # anime-blog
 [[containers]]
 class_name = "AnimeBlog"
-image = "ghcr.io/crvouga/anime-blog:latest"
+image = "ghcr.io/crvouga/chrisvouga.dev:anime-blog-latest"
 instance_type = "lite"
 max_instances = 3
 
 # snake-game
 [[containers]]
 class_name = "SnakeGame"
-image = "ghcr.io/crvouga/snake-game:latest"
+image = "ghcr.io/crvouga/chrisvouga.dev:snake-game-latest"
 instance_type = "lite"
 max_instances = 3
 
 # match-three
 [[containers]]
 class_name = "MatchThree"
-image = "ghcr.io/crvouga/match-three:latest"
+image = "ghcr.io/crvouga/chrisvouga.dev:match-three-latest"
 instance_type = "lite"
 max_instances = 3
 
 # moviefinder-app-rust
 [[containers]]
 class_name = "MoviefinderAppRust"
-image = "ghcr.io/crvouga/moviefinder-app-rust:latest"
+image = "ghcr.io/crvouga/chrisvouga.dev:moviefinder-app-rust-latest"
 instance_type = "basic"
 max_instances = 3
 
 # moviefinder-app-go
 [[containers]]
 class_name = "MoviefinderAppGo"
-image = "ghcr.io/crvouga/moviefinder-app-go:latest"
+image = "ghcr.io/crvouga/chrisvouga.dev:moviefinder-app-go-latest"
 instance_type = "basic"
 max_instances = 3
 
 # moviefinder-app-react
 [[containers]]
 class_name = "MoviefinderAppReact"
-image = "ghcr.io/crvouga/moviefinder-app-react:latest"
+image = "ghcr.io/crvouga/chrisvouga.dev:moviefinder-app-react-latest"
 instance_type = "basic"
 max_instances = 3
 
 # moviefinder-app-clojurescript
 [[containers]]
 class_name = "MoviefinderAppClojurescript"
-image = "ghcr.io/crvouga/moviefinder-app-clojurescript:latest"
+image = "ghcr.io/crvouga/chrisvouga.dev:moviefinder-app-clojurescript-latest"
 instance_type = "basic"
 max_instances = 3
 
 # simon-says
 [[containers]]
 class_name = "SimonSays"
-image = "ghcr.io/crvouga/simon-says:latest"
+image = "ghcr.io/crvouga/chrisvouga.dev:simon-says-latest"
 instance_type = "lite"
 max_instances = 3
 
 # cheese
 [[containers]]
 class_name = "Cheese"
-image = "ghcr.io/crvouga/cheese:latest"
+image = "ghcr.io/crvouga/chrisvouga.dev:cheese-latest"
 instance_type = "lite"
 max_instances = 3
 

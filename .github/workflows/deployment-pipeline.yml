@@ -39,6 +39,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: typecheck
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      packages: write
     strategy:
       fail-fast: false
       matrix:
@@ -169,17 +172,19 @@ jobs:
       - name: Build and push
         id: build
         env:
-          IMAGE: ghcr.io/${{ github.repository_owner }}/${{ matrix.id }}
+          # One GHCR package (this repo); matrix id is the image tag. GITHUB_TOKEN can only
+          # publish packages linked to the workflow repository, not ghcr.io/owner/simon-says etc.
+          GHCR_IMAGE: ghcr.io/${{ github.repository }}
         run: |
-          IMAGE=$(echo "$IMAGE" | tr '[:upper:]' '[:lower:]')
+          GHCR_IMAGE=$(echo "$GHCR_IMAGE" | tr '[:upper:]' '[:lower:]')
           docker buildx build \
             --platform linux/amd64 \
             --file "${{ matrix.dockerfile }}" \
-            --tag "${IMAGE}:latest" \
-            --tag "${IMAGE}:${{ github.sha }}" \
+            --tag "${GHCR_IMAGE}:${{ matrix.id }}-latest" \
+            --tag "${GHCR_IMAGE}:${{ matrix.id }}-${{ github.sha }}" \
             --push \
             "${{ matrix.build_context }}"
-          echo "image=${IMAGE}" >> "$GITHUB_OUTPUT"
+          echo "image=${GHCR_IMAGE}:${{ matrix.id }}-latest" >> "$GITHUB_OUTPUT"
 
   deploy-cloudflare:
     runs-on: ubuntu-latest
@@ -402,8 +407,8 @@ jobs:
               print_row() {
                 id="$1"
                 host="$2"
-                image="ghcr.io/${OWNER}/${id}"
-                echo "| \`${id}\` | \`latest\` \`${SHORT_SHA}\` | \`docker pull ${image}:latest\` | https://${host} |"
+                image="${REPO}"
+                echo "| \`${id}\` | \`${id}-latest\` \`${id}-${SHORT_SHA}\` | \`docker pull ghcr.io/${image}:${id}-latest\` | https://${host} |"
               }
 
               print_row portfolio                       www.chrisvouga.dev
