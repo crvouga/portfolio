@@ -2,7 +2,7 @@
 
 import { Container, getContainer } from "@cloudflare/containers";
 
-export const SECRETS_STORE_ID = "chrisvouga";
+export const SECRETS_STORE_ID = "06a5a7ee662b4e41b778c4eeb447f030";
 
 export class MissingSecretsError extends Error {
   constructor(
@@ -27,38 +27,38 @@ const STATIC_ENV_SPECS = {
 
 const SECRET_SPECS = {
   "pickflix": [
-    { containerKey: "DATABASE_URL", binding: "PICKFLIX__DATABASE_URL" },
-    { containerKey: "PORT", binding: "PICKFLIX__PORT" },
-    { containerKey: "SECRET", binding: "PICKFLIX__SECRET" },
-    { containerKey: "SEND_GRID_API_KEY", binding: "PICKFLIX__SEND_GRID_API_KEY" },
-    { containerKey: "SEND_GRID_REGISTERED_EMAIL_ADDRESS", binding: "PICKFLIX__SEND_GRID_REGISTERED_EMAIL_ADDRESS" },
-    { containerKey: "SESSION_COOKIE_SECRET", binding: "PICKFLIX__SESSION_COOKIE_SECRET" },
-    { containerKey: "YOUTUBE_API_KEY", binding: "PICKFLIX__YOUTUBE_API_KEY" },
-    { containerKey: "TMDB_API_READ_ACCESS_TOKEN", binding: "PICKFLIX__TMDB_API_READ_ACCESS_TOKEN" },
+    { containerKey: "DATABASE_URL", binding: "PORTFOLIO_PICKFLIX__DATABASE_URL" },
+    { containerKey: "PORT", binding: "PORTFOLIO_PICKFLIX__PORT" },
+    { containerKey: "SECRET", binding: "PORTFOLIO_PICKFLIX__SECRET" },
+    { containerKey: "SEND_GRID_API_KEY", binding: "PORTFOLIO_PICKFLIX__SEND_GRID_API_KEY" },
+    { containerKey: "SEND_GRID_REGISTERED_EMAIL_ADDRESS", binding: "PORTFOLIO_PICKFLIX__SEND_GRID_REGISTERED_EMAIL_ADDRESS" },
+    { containerKey: "SESSION_COOKIE_SECRET", binding: "PORTFOLIO_PICKFLIX__SESSION_COOKIE_SECRET" },
+    { containerKey: "YOUTUBE_API_KEY", binding: "PORTFOLIO_PICKFLIX__YOUTUBE_API_KEY" },
+    { containerKey: "TMDB_API_READ_ACCESS_TOKEN", binding: "PORTFOLIO_PICKFLIX__TMDB_API_READ_ACCESS_TOKEN" },
   ],
   "moviefinder-app-rust": [
-    { containerKey: "TMDB_API_READ_ACCESS_TOKEN", binding: "MOVIEFINDER_APP_RUST__TMDB_API_READ_ACCESS_TOKEN" },
-    { containerKey: "TWILIO_ACCOUNT_SID", binding: "MOVIEFINDER_APP_RUST__TWILIO_ACCOUNT_SID" },
-    { containerKey: "TWILIO_AUTH_TOKEN", binding: "MOVIEFINDER_APP_RUST__TWILIO_AUTH_TOKEN" },
-    { containerKey: "TWILIO_SERVICE_SID", binding: "MOVIEFINDER_APP_RUST__TWILIO_SERVICE_SID" },
+    { containerKey: "TMDB_API_READ_ACCESS_TOKEN", binding: "PORTFOLIO_MOVIEFINDER_APP_RUST__TMDB_API_READ_ACCESS_TOKEN" },
+    { containerKey: "TWILIO_ACCOUNT_SID", binding: "PORTFOLIO_MOVIEFINDER_APP_RUST__TWILIO_ACCOUNT_SID" },
+    { containerKey: "TWILIO_AUTH_TOKEN", binding: "PORTFOLIO_MOVIEFINDER_APP_RUST__TWILIO_AUTH_TOKEN" },
+    { containerKey: "TWILIO_SERVICE_SID", binding: "PORTFOLIO_MOVIEFINDER_APP_RUST__TWILIO_SERVICE_SID" },
   ],
   "moviefinder-app-go": [
-    { containerKey: "TMDB_API_READ_ACCESS_TOKEN", binding: "MOVIEFINDER_APP_GO__TMDB_API_READ_ACCESS_TOKEN" },
-    { containerKey: "TWILIO_ACCOUNT_SID", binding: "MOVIEFINDER_APP_GO__TWILIO_ACCOUNT_SID" },
-    { containerKey: "TWILIO_AUTH_TOKEN", binding: "MOVIEFINDER_APP_GO__TWILIO_AUTH_TOKEN" },
-    { containerKey: "TWILIO_SERVICE_SID", binding: "MOVIEFINDER_APP_GO__TWILIO_SERVICE_SID" },
+    { containerKey: "TMDB_API_READ_ACCESS_TOKEN", binding: "PORTFOLIO_MOVIEFINDER_APP_GO__TMDB_API_READ_ACCESS_TOKEN" },
+    { containerKey: "TWILIO_ACCOUNT_SID", binding: "PORTFOLIO_MOVIEFINDER_APP_GO__TWILIO_ACCOUNT_SID" },
+    { containerKey: "TWILIO_AUTH_TOKEN", binding: "PORTFOLIO_MOVIEFINDER_APP_GO__TWILIO_AUTH_TOKEN" },
+    { containerKey: "TWILIO_SERVICE_SID", binding: "PORTFOLIO_MOVIEFINDER_APP_GO__TWILIO_SERVICE_SID" },
   ],
   "moviefinder-app-react": [
-    { containerKey: "TMDB_API_READ_ACCESS_TOKEN", binding: "MOVIEFINDER_APP_REACT__TMDB_API_READ_ACCESS_TOKEN" },
-    { containerKey: "TWILIO_ACCOUNT_SID", binding: "MOVIEFINDER_APP_REACT__TWILIO_ACCOUNT_SID" },
-    { containerKey: "TWILIO_AUTH_TOKEN", binding: "MOVIEFINDER_APP_REACT__TWILIO_AUTH_TOKEN" },
-    { containerKey: "TWILIO_SERVICE_SID", binding: "MOVIEFINDER_APP_REACT__TWILIO_SERVICE_SID" },
+    { containerKey: "TMDB_API_READ_ACCESS_TOKEN", binding: "PORTFOLIO_MOVIEFINDER_APP_REACT__TMDB_API_READ_ACCESS_TOKEN" },
+    { containerKey: "TWILIO_ACCOUNT_SID", binding: "PORTFOLIO_MOVIEFINDER_APP_REACT__TWILIO_ACCOUNT_SID" },
+    { containerKey: "TWILIO_AUTH_TOKEN", binding: "PORTFOLIO_MOVIEFINDER_APP_REACT__TWILIO_AUTH_TOKEN" },
+    { containerKey: "TWILIO_SERVICE_SID", binding: "PORTFOLIO_MOVIEFINDER_APP_REACT__TWILIO_SERVICE_SID" },
   ],
   "moviefinder-app-clojurescript": [
-    { containerKey: "TMDB_API_READ_ACCESS_TOKEN", binding: "MOVIEFINDER_APP_CLOJURESCRIPT__TMDB_API_READ_ACCESS_TOKEN" },
-    { containerKey: "TWILIO_ACCOUNT_SID", binding: "MOVIEFINDER_APP_CLOJURESCRIPT__TWILIO_ACCOUNT_SID" },
-    { containerKey: "TWILIO_AUTH_TOKEN", binding: "MOVIEFINDER_APP_CLOJURESCRIPT__TWILIO_AUTH_TOKEN" },
-    { containerKey: "TWILIO_SERVICE_SID", binding: "MOVIEFINDER_APP_CLOJURESCRIPT__TWILIO_SERVICE_SID" },
+    { containerKey: "TMDB_API_READ_ACCESS_TOKEN", binding: "PORTFOLIO_MOVIEFINDER_APP_CLOJURESCRIPT__TMDB_API_READ_ACCESS_TOKEN" },
+    { containerKey: "TWILIO_ACCOUNT_SID", binding: "PORTFOLIO_MOVIEFINDER_APP_CLOJURESCRIPT__TWILIO_ACCOUNT_SID" },
+    { containerKey: "TWILIO_AUTH_TOKEN", binding: "PORTFOLIO_MOVIEFINDER_APP_CLOJURESCRIPT__TWILIO_AUTH_TOKEN" },
+    { containerKey: "TWILIO_SERVICE_SID", binding: "PORTFOLIO_MOVIEFINDER_APP_CLOJURESCRIPT__TWILIO_SERVICE_SID" },
   ],
 } as const;
 
@@ -122,57 +122,57 @@ function secretsErrorResponse(projectId: string, err: unknown): Response {
 }
 
 export interface Env {
-  readonly PORTFOLIO: DurableObjectNamespace<Portfolio>;
-  readonly PICKFLIX: DurableObjectNamespace<Pickflix>;
-  readonly HEADLESS_COMBOBOX_SVELTE_EXAMPLE: DurableObjectNamespace<HeadlessComboboxSvelteExample>;
-  readonly HEADLESS_COMBOBOX_DOCS: DurableObjectNamespace<HeadlessComboboxDocs>;
-  readonly TODO_APP: DurableObjectNamespace<TodoApp>;
-  readonly IMAGE_SERVICE: DurableObjectNamespace<ImageService>;
-  readonly CONNECT_FOUR: DurableObjectNamespace<ConnectFour>;
-  readonly NORMALIZER_APP: DurableObjectNamespace<NormalizerApp>;
-  readonly SCREENSHOT_SERVICE: DurableObjectNamespace<ScreenshotService>;
-  readonly SMART_DOG_DOOR: DurableObjectNamespace<SmartDogDoor>;
-  readonly QUIZ_MAKER: DurableObjectNamespace<QuizMaker>;
-  readonly ANIME_BLOG: DurableObjectNamespace<AnimeBlog>;
-  readonly SNAKE_GAME: DurableObjectNamespace<SnakeGame>;
-  readonly MATCH_THREE: DurableObjectNamespace<MatchThree>;
-  readonly MOVIEFINDER_APP_RUST: DurableObjectNamespace<MoviefinderAppRust>;
-  readonly MOVIEFINDER_APP_GO: DurableObjectNamespace<MoviefinderAppGo>;
-  readonly MOVIEFINDER_APP_REACT: DurableObjectNamespace<MoviefinderAppReact>;
-  readonly MOVIEFINDER_APP_CLOJURESCRIPT: DurableObjectNamespace<MoviefinderAppClojurescript>;
-  readonly SIMON_SAYS: DurableObjectNamespace<SimonSays>;
-  readonly PICKFLIX__DATABASE_URL: SecretsStoreSecret;
-  readonly PICKFLIX__PORT: SecretsStoreSecret;
-  readonly PICKFLIX__SECRET: SecretsStoreSecret;
-  readonly PICKFLIX__SEND_GRID_API_KEY: SecretsStoreSecret;
-  readonly PICKFLIX__SEND_GRID_REGISTERED_EMAIL_ADDRESS: SecretsStoreSecret;
-  readonly PICKFLIX__SESSION_COOKIE_SECRET: SecretsStoreSecret;
-  readonly PICKFLIX__YOUTUBE_API_KEY: SecretsStoreSecret;
-  readonly PICKFLIX__TMDB_API_READ_ACCESS_TOKEN: SecretsStoreSecret;
-  readonly MOVIEFINDER_APP_RUST__TMDB_API_READ_ACCESS_TOKEN: SecretsStoreSecret;
-  readonly MOVIEFINDER_APP_RUST__TWILIO_ACCOUNT_SID: SecretsStoreSecret;
-  readonly MOVIEFINDER_APP_RUST__TWILIO_AUTH_TOKEN: SecretsStoreSecret;
-  readonly MOVIEFINDER_APP_RUST__TWILIO_SERVICE_SID: SecretsStoreSecret;
-  readonly MOVIEFINDER_APP_GO__TMDB_API_READ_ACCESS_TOKEN: SecretsStoreSecret;
-  readonly MOVIEFINDER_APP_GO__TWILIO_ACCOUNT_SID: SecretsStoreSecret;
-  readonly MOVIEFINDER_APP_GO__TWILIO_AUTH_TOKEN: SecretsStoreSecret;
-  readonly MOVIEFINDER_APP_GO__TWILIO_SERVICE_SID: SecretsStoreSecret;
-  readonly MOVIEFINDER_APP_REACT__TMDB_API_READ_ACCESS_TOKEN: SecretsStoreSecret;
-  readonly MOVIEFINDER_APP_REACT__TWILIO_ACCOUNT_SID: SecretsStoreSecret;
-  readonly MOVIEFINDER_APP_REACT__TWILIO_AUTH_TOKEN: SecretsStoreSecret;
-  readonly MOVIEFINDER_APP_REACT__TWILIO_SERVICE_SID: SecretsStoreSecret;
-  readonly MOVIEFINDER_APP_CLOJURESCRIPT__TMDB_API_READ_ACCESS_TOKEN: SecretsStoreSecret;
-  readonly MOVIEFINDER_APP_CLOJURESCRIPT__TWILIO_ACCOUNT_SID: SecretsStoreSecret;
-  readonly MOVIEFINDER_APP_CLOJURESCRIPT__TWILIO_AUTH_TOKEN: SecretsStoreSecret;
-  readonly MOVIEFINDER_APP_CLOJURESCRIPT__TWILIO_SERVICE_SID: SecretsStoreSecret;
+  readonly PORTFOLIO_PORTFOLIO: DurableObjectNamespace<Portfolio_Portfolio>;
+  readonly PORTFOLIO_PICKFLIX: DurableObjectNamespace<Portfolio_Pickflix>;
+  readonly PORTFOLIO_HEADLESS_COMBOBOX_SVELTE_EXAMPLE: DurableObjectNamespace<Portfolio_HeadlessComboboxSvelteExample>;
+  readonly PORTFOLIO_HEADLESS_COMBOBOX_DOCS: DurableObjectNamespace<Portfolio_HeadlessComboboxDocs>;
+  readonly PORTFOLIO_TODO_APP: DurableObjectNamespace<Portfolio_TodoApp>;
+  readonly PORTFOLIO_IMAGE_SERVICE: DurableObjectNamespace<Portfolio_ImageService>;
+  readonly PORTFOLIO_CONNECT_FOUR: DurableObjectNamespace<Portfolio_ConnectFour>;
+  readonly PORTFOLIO_NORMALIZER_APP: DurableObjectNamespace<Portfolio_NormalizerApp>;
+  readonly PORTFOLIO_SCREENSHOT_SERVICE: DurableObjectNamespace<Portfolio_ScreenshotService>;
+  readonly PORTFOLIO_SMART_DOG_DOOR: DurableObjectNamespace<Portfolio_SmartDogDoor>;
+  readonly PORTFOLIO_QUIZ_MAKER: DurableObjectNamespace<Portfolio_QuizMaker>;
+  readonly PORTFOLIO_ANIME_BLOG: DurableObjectNamespace<Portfolio_AnimeBlog>;
+  readonly PORTFOLIO_SNAKE_GAME: DurableObjectNamespace<Portfolio_SnakeGame>;
+  readonly PORTFOLIO_MATCH_THREE: DurableObjectNamespace<Portfolio_MatchThree>;
+  readonly PORTFOLIO_MOVIEFINDER_APP_RUST: DurableObjectNamespace<Portfolio_MoviefinderAppRust>;
+  readonly PORTFOLIO_MOVIEFINDER_APP_GO: DurableObjectNamespace<Portfolio_MoviefinderAppGo>;
+  readonly PORTFOLIO_MOVIEFINDER_APP_REACT: DurableObjectNamespace<Portfolio_MoviefinderAppReact>;
+  readonly PORTFOLIO_MOVIEFINDER_APP_CLOJURESCRIPT: DurableObjectNamespace<Portfolio_MoviefinderAppClojurescript>;
+  readonly PORTFOLIO_SIMON_SAYS: DurableObjectNamespace<Portfolio_SimonSays>;
+  readonly PORTFOLIO_PICKFLIX__DATABASE_URL: SecretsStoreSecret;
+  readonly PORTFOLIO_PICKFLIX__PORT: SecretsStoreSecret;
+  readonly PORTFOLIO_PICKFLIX__SECRET: SecretsStoreSecret;
+  readonly PORTFOLIO_PICKFLIX__SEND_GRID_API_KEY: SecretsStoreSecret;
+  readonly PORTFOLIO_PICKFLIX__SEND_GRID_REGISTERED_EMAIL_ADDRESS: SecretsStoreSecret;
+  readonly PORTFOLIO_PICKFLIX__SESSION_COOKIE_SECRET: SecretsStoreSecret;
+  readonly PORTFOLIO_PICKFLIX__YOUTUBE_API_KEY: SecretsStoreSecret;
+  readonly PORTFOLIO_PICKFLIX__TMDB_API_READ_ACCESS_TOKEN: SecretsStoreSecret;
+  readonly PORTFOLIO_MOVIEFINDER_APP_RUST__TMDB_API_READ_ACCESS_TOKEN: SecretsStoreSecret;
+  readonly PORTFOLIO_MOVIEFINDER_APP_RUST__TWILIO_ACCOUNT_SID: SecretsStoreSecret;
+  readonly PORTFOLIO_MOVIEFINDER_APP_RUST__TWILIO_AUTH_TOKEN: SecretsStoreSecret;
+  readonly PORTFOLIO_MOVIEFINDER_APP_RUST__TWILIO_SERVICE_SID: SecretsStoreSecret;
+  readonly PORTFOLIO_MOVIEFINDER_APP_GO__TMDB_API_READ_ACCESS_TOKEN: SecretsStoreSecret;
+  readonly PORTFOLIO_MOVIEFINDER_APP_GO__TWILIO_ACCOUNT_SID: SecretsStoreSecret;
+  readonly PORTFOLIO_MOVIEFINDER_APP_GO__TWILIO_AUTH_TOKEN: SecretsStoreSecret;
+  readonly PORTFOLIO_MOVIEFINDER_APP_GO__TWILIO_SERVICE_SID: SecretsStoreSecret;
+  readonly PORTFOLIO_MOVIEFINDER_APP_REACT__TMDB_API_READ_ACCESS_TOKEN: SecretsStoreSecret;
+  readonly PORTFOLIO_MOVIEFINDER_APP_REACT__TWILIO_ACCOUNT_SID: SecretsStoreSecret;
+  readonly PORTFOLIO_MOVIEFINDER_APP_REACT__TWILIO_AUTH_TOKEN: SecretsStoreSecret;
+  readonly PORTFOLIO_MOVIEFINDER_APP_REACT__TWILIO_SERVICE_SID: SecretsStoreSecret;
+  readonly PORTFOLIO_MOVIEFINDER_APP_CLOJURESCRIPT__TMDB_API_READ_ACCESS_TOKEN: SecretsStoreSecret;
+  readonly PORTFOLIO_MOVIEFINDER_APP_CLOJURESCRIPT__TWILIO_ACCOUNT_SID: SecretsStoreSecret;
+  readonly PORTFOLIO_MOVIEFINDER_APP_CLOJURESCRIPT__TWILIO_AUTH_TOKEN: SecretsStoreSecret;
+  readonly PORTFOLIO_MOVIEFINDER_APP_CLOJURESCRIPT__TWILIO_SERVICE_SID: SecretsStoreSecret;
 }
 
-export class Portfolio extends Container<Env> {
+export class Portfolio_Portfolio extends Container<Env> {
   defaultPort = 80;
   sleepAfter = "5m";
 }
 
-export class Pickflix extends Container<Env> {
+export class Portfolio_Pickflix extends Container<Env> {
   defaultPort = 3000;
   sleepAfter = "5m";
   private secretsLoad?: Promise<void>;
@@ -188,67 +188,67 @@ export class Pickflix extends Container<Env> {
   }
 }
 
-export class HeadlessComboboxSvelteExample extends Container<Env> {
+export class Portfolio_HeadlessComboboxSvelteExample extends Container<Env> {
   defaultPort = 80;
   sleepAfter = "5m";
 }
 
-export class HeadlessComboboxDocs extends Container<Env> {
+export class Portfolio_HeadlessComboboxDocs extends Container<Env> {
   defaultPort = 80;
   sleepAfter = "5m";
 }
 
-export class TodoApp extends Container<Env> {
+export class Portfolio_TodoApp extends Container<Env> {
   defaultPort = 80;
   sleepAfter = "5m";
 }
 
-export class ImageService extends Container<Env> {
+export class Portfolio_ImageService extends Container<Env> {
   defaultPort = 80;
   sleepAfter = "5m";
 }
 
-export class ConnectFour extends Container<Env> {
+export class Portfolio_ConnectFour extends Container<Env> {
   defaultPort = 80;
   sleepAfter = "5m";
 }
 
-export class NormalizerApp extends Container<Env> {
+export class Portfolio_NormalizerApp extends Container<Env> {
   defaultPort = 8080;
   sleepAfter = "5m";
 }
 
-export class ScreenshotService extends Container<Env> {
+export class Portfolio_ScreenshotService extends Container<Env> {
   defaultPort = 80;
   sleepAfter = "5m";
 }
 
-export class SmartDogDoor extends Container<Env> {
+export class Portfolio_SmartDogDoor extends Container<Env> {
   defaultPort = 80;
   sleepAfter = "5m";
 }
 
-export class QuizMaker extends Container<Env> {
+export class Portfolio_QuizMaker extends Container<Env> {
   defaultPort = 80;
   sleepAfter = "5m";
 }
 
-export class AnimeBlog extends Container<Env> {
+export class Portfolio_AnimeBlog extends Container<Env> {
   defaultPort = 80;
   sleepAfter = "5m";
 }
 
-export class SnakeGame extends Container<Env> {
+export class Portfolio_SnakeGame extends Container<Env> {
   defaultPort = 80;
   sleepAfter = "5m";
 }
 
-export class MatchThree extends Container<Env> {
+export class Portfolio_MatchThree extends Container<Env> {
   defaultPort = 80;
   sleepAfter = "5m";
 }
 
-export class MoviefinderAppRust extends Container<Env> {
+export class Portfolio_MoviefinderAppRust extends Container<Env> {
   defaultPort = 80;
   sleepAfter = "5m";
   private secretsLoad?: Promise<void>;
@@ -264,7 +264,7 @@ export class MoviefinderAppRust extends Container<Env> {
   }
 }
 
-export class MoviefinderAppGo extends Container<Env> {
+export class Portfolio_MoviefinderAppGo extends Container<Env> {
   defaultPort = 80;
   sleepAfter = "5m";
   private secretsLoad?: Promise<void>;
@@ -280,7 +280,7 @@ export class MoviefinderAppGo extends Container<Env> {
   }
 }
 
-export class MoviefinderAppReact extends Container<Env> {
+export class Portfolio_MoviefinderAppReact extends Container<Env> {
   defaultPort = 80;
   sleepAfter = "5m";
   private secretsLoad?: Promise<void>;
@@ -296,7 +296,7 @@ export class MoviefinderAppReact extends Container<Env> {
   }
 }
 
-export class MoviefinderAppClojurescript extends Container<Env> {
+export class Portfolio_MoviefinderAppClojurescript extends Container<Env> {
   defaultPort = 8888;
   sleepAfter = "5m";
   private secretsLoad?: Promise<void>;
@@ -312,31 +312,31 @@ export class MoviefinderAppClojurescript extends Container<Env> {
   }
 }
 
-export class SimonSays extends Container<Env> {
+export class Portfolio_SimonSays extends Container<Env> {
   defaultPort = 80;
   sleepAfter = "5m";
 }
 
 const HOSTNAME_TO_BINDING: Record<string, keyof Env> = {
-  "www.chrisvouga.dev": "PORTFOLIO",
-  "pickflix.chrisvouga.dev": "PICKFLIX",
-  "svelte.headlesscombobox.chrisvouga.dev": "HEADLESS_COMBOBOX_SVELTE_EXAMPLE",
-  "headlesscombobox.chrisvouga.dev": "HEADLESS_COMBOBOX_DOCS",
-  "todo.chrisvouga.dev": "TODO_APP",
-  "imageservice.chrisvouga.dev": "IMAGE_SERVICE",
-  "connectfour.chrisvouga.dev": "CONNECT_FOUR",
-  "normalizer.app": "NORMALIZER_APP",
-  "screenshotservice.chrisvouga.dev": "SCREENSHOT_SERVICE",
-  "smartdogdoor.chrisvouga.dev": "SMART_DOG_DOOR",
-  "quizmaker.chrisvouga.dev": "QUIZ_MAKER",
-  "anime.chrisvouga.dev": "ANIME_BLOG",
-  "snake.chrisvouga.dev": "SNAKE_GAME",
-  "matchthree.chrisvouga.dev": "MATCH_THREE",
-  "moviefinder-app-rust.chrisvouga.dev": "MOVIEFINDER_APP_RUST",
-  "moviefinder-app-go.chrisvouga.dev": "MOVIEFINDER_APP_GO",
-  "moviefinder-app-react.chrisvouga.dev": "MOVIEFINDER_APP_REACT",
-  "moviefinder-app-clojurescript.chrisvouga.dev": "MOVIEFINDER_APP_CLOJURESCRIPT",
-  "simonsays.chrisvouga.dev": "SIMON_SAYS",
+  "www.chrisvouga.dev": "PORTFOLIO_PORTFOLIO",
+  "pickflix.chrisvouga.dev": "PORTFOLIO_PICKFLIX",
+  "svelte.headlesscombobox.chrisvouga.dev": "PORTFOLIO_HEADLESS_COMBOBOX_SVELTE_EXAMPLE",
+  "headlesscombobox.chrisvouga.dev": "PORTFOLIO_HEADLESS_COMBOBOX_DOCS",
+  "todo.chrisvouga.dev": "PORTFOLIO_TODO_APP",
+  "imageservice.chrisvouga.dev": "PORTFOLIO_IMAGE_SERVICE",
+  "connectfour.chrisvouga.dev": "PORTFOLIO_CONNECT_FOUR",
+  "normalizer.app": "PORTFOLIO_NORMALIZER_APP",
+  "screenshotservice.chrisvouga.dev": "PORTFOLIO_SCREENSHOT_SERVICE",
+  "smartdogdoor.chrisvouga.dev": "PORTFOLIO_SMART_DOG_DOOR",
+  "quizmaker.chrisvouga.dev": "PORTFOLIO_QUIZ_MAKER",
+  "anime.chrisvouga.dev": "PORTFOLIO_ANIME_BLOG",
+  "snake.chrisvouga.dev": "PORTFOLIO_SNAKE_GAME",
+  "matchthree.chrisvouga.dev": "PORTFOLIO_MATCH_THREE",
+  "moviefinder-app-rust.chrisvouga.dev": "PORTFOLIO_MOVIEFINDER_APP_RUST",
+  "moviefinder-app-go.chrisvouga.dev": "PORTFOLIO_MOVIEFINDER_APP_GO",
+  "moviefinder-app-react.chrisvouga.dev": "PORTFOLIO_MOVIEFINDER_APP_REACT",
+  "moviefinder-app-clojurescript.chrisvouga.dev": "PORTFOLIO_MOVIEFINDER_APP_CLOJURESCRIPT",
+  "simonsays.chrisvouga.dev": "PORTFOLIO_SIMON_SAYS",
 };
 
 type ContainerBindingKey = (typeof HOSTNAME_TO_BINDING)[keyof typeof HOSTNAME_TO_BINDING];

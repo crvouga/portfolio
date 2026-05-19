@@ -1,6 +1,7 @@
 /** Shared secret naming for Cloudflare Secrets Store bindings (used by generator + setup). */
 
 import { getDeployableProjects } from "../projects.js";
+import { secretsProjectPrefix } from "./cloudflare-resource-names.js";
 
 /**
  * App secrets that exist in GitHub repo settings (source of truth).
@@ -20,7 +21,7 @@ export const SHARED_GITHUB_SECRETS = GITHUB_REPO_APP_SECRETS;
 export type SharedGithubSecret = GithubRepoAppSecret;
 
 export function projectBindingPrefix(projectId: string): string {
-  return projectId.toUpperCase().replace(/[-.]/g, "_");
+  return secretsProjectPrefix(projectId);
 }
 
 export function secretBindingName(projectId: string, secret: string): string {
@@ -39,7 +40,16 @@ export function githubSecretName(_projectId: string, secret: string): string | n
   return isGithubRepoAppSecret(secret) ? secret : null;
 }
 
-export const DEFAULT_SECRETS_STORE_ID = "chrisvouga";
+/** Secrets Store ID from env (GitHub: secrets.CLOUDFLARE_SECRETS_STORE_ID). */
+export function getSecretsStoreId(): string {
+  const id = process.env["CLOUDFLARE_SECRETS_STORE_ID"]?.trim();
+  if (!id) {
+    throw new Error(
+      "CLOUDFLARE_SECRETS_STORE_ID is required (GitHub repo secret in CI, or export locally).",
+    );
+  }
+  return id;
+}
 
 /** Placeholder values for pickflix secrets not stored in GitHub. */
 export const PICKFLIX_HARDCODED_SECRETS: Record<string, string> = {

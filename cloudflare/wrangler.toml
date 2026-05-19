@@ -3,216 +3,216 @@
 name = "chrisvouga-containers"
 main = "src/index.ts"
 compatibility_date = "2026-05-19"
-# Secrets Store ID: chrisvouga (override with CLOUDFLARE_SECRETS_STORE_ID)
+# Secrets Store ID: 06a5a7ee662b4e41b778c4eeb447f030 (from CLOUDFLARE_SECRETS_STORE_ID / secrets.CLOUDFLARE_SECRETS_STORE_ID)
 
 # portfolio
 [[containers]]
-class_name = "Portfolio"
+class_name = "Portfolio_Portfolio"
 image = "ghcr.io/crvouga/chrisvouga.dev:portfolio-latest"
 instance_type = "lite"
 max_instances = 3
 
 # pickflix
 [[containers]]
-class_name = "Pickflix"
+class_name = "Portfolio_Pickflix"
 image = "ghcr.io/crvouga/chrisvouga.dev:pickflix-latest"
 instance_type = "basic"
 max_instances = 3
 
 # headless-combobox-svelte-example
 [[containers]]
-class_name = "HeadlessComboboxSvelteExample"
+class_name = "Portfolio_HeadlessComboboxSvelteExample"
 image = "ghcr.io/crvouga/chrisvouga.dev:headless-combobox-svelte-example-latest"
 instance_type = "lite"
 max_instances = 3
 
 # headless-combobox-docs
 [[containers]]
-class_name = "HeadlessComboboxDocs"
+class_name = "Portfolio_HeadlessComboboxDocs"
 image = "ghcr.io/crvouga/chrisvouga.dev:headless-combobox-docs-latest"
 instance_type = "lite"
 max_instances = 3
 
 # todo-app
 [[containers]]
-class_name = "TodoApp"
+class_name = "Portfolio_TodoApp"
 image = "ghcr.io/crvouga/chrisvouga.dev:todo-app-latest"
 instance_type = "basic"
 max_instances = 3
 
 # image-service
 [[containers]]
-class_name = "ImageService"
+class_name = "Portfolio_ImageService"
 image = "ghcr.io/crvouga/chrisvouga.dev:image-service-latest"
 instance_type = "lite"
 max_instances = 3
 
 # connect-four
 [[containers]]
-class_name = "ConnectFour"
+class_name = "Portfolio_ConnectFour"
 image = "ghcr.io/crvouga/chrisvouga.dev:connect-four-latest"
 instance_type = "lite"
 max_instances = 3
 
 # normalizer-app
 [[containers]]
-class_name = "NormalizerApp"
+class_name = "Portfolio_NormalizerApp"
 image = "ghcr.io/crvouga/chrisvouga.dev:normalizer-app-latest"
 instance_type = "basic"
 max_instances = 3
 
 # screenshot-service
 [[containers]]
-class_name = "ScreenshotService"
+class_name = "Portfolio_ScreenshotService"
 image = "ghcr.io/crvouga/chrisvouga.dev:screenshot-service-latest"
 instance_type = "lite"
 max_instances = 3
 
 # smart-dog-door
 [[containers]]
-class_name = "SmartDogDoor"
+class_name = "Portfolio_SmartDogDoor"
 image = "ghcr.io/crvouga/chrisvouga.dev:smart-dog-door-latest"
 instance_type = "lite"
 max_instances = 3
 
 # quiz-maker
 [[containers]]
-class_name = "QuizMaker"
+class_name = "Portfolio_QuizMaker"
 image = "ghcr.io/crvouga/chrisvouga.dev:quiz-maker-latest"
 instance_type = "lite"
 max_instances = 3
 
 # anime-blog
 [[containers]]
-class_name = "AnimeBlog"
+class_name = "Portfolio_AnimeBlog"
 image = "ghcr.io/crvouga/chrisvouga.dev:anime-blog-latest"
 instance_type = "lite"
 max_instances = 3
 
 # snake-game
 [[containers]]
-class_name = "SnakeGame"
+class_name = "Portfolio_SnakeGame"
 image = "ghcr.io/crvouga/chrisvouga.dev:snake-game-latest"
 instance_type = "lite"
 max_instances = 3
 
 # match-three
 [[containers]]
-class_name = "MatchThree"
+class_name = "Portfolio_MatchThree"
 image = "ghcr.io/crvouga/chrisvouga.dev:match-three-latest"
 instance_type = "lite"
 max_instances = 3
 
 # moviefinder-app-rust
 [[containers]]
-class_name = "MoviefinderAppRust"
+class_name = "Portfolio_MoviefinderAppRust"
 image = "ghcr.io/crvouga/chrisvouga.dev:moviefinder-app-rust-latest"
 instance_type = "basic"
 max_instances = 3
 
 # moviefinder-app-go
 [[containers]]
-class_name = "MoviefinderAppGo"
+class_name = "Portfolio_MoviefinderAppGo"
 image = "ghcr.io/crvouga/chrisvouga.dev:moviefinder-app-go-latest"
 instance_type = "basic"
 max_instances = 3
 
 # moviefinder-app-react
 [[containers]]
-class_name = "MoviefinderAppReact"
+class_name = "Portfolio_MoviefinderAppReact"
 image = "ghcr.io/crvouga/chrisvouga.dev:moviefinder-app-react-latest"
 instance_type = "basic"
 max_instances = 3
 
 # moviefinder-app-clojurescript
 [[containers]]
-class_name = "MoviefinderAppClojurescript"
+class_name = "Portfolio_MoviefinderAppClojurescript"
 image = "ghcr.io/crvouga/chrisvouga.dev:moviefinder-app-clojurescript-latest"
 instance_type = "basic"
 max_instances = 3
 
 # simon-says
 [[containers]]
-class_name = "SimonSays"
+class_name = "Portfolio_SimonSays"
 image = "ghcr.io/crvouga/chrisvouga.dev:simon-says-latest"
 instance_type = "lite"
 max_instances = 3
 
 [[durable_objects.bindings]]
-name = "PORTFOLIO"
-class_name = "Portfolio"
+name = "PORTFOLIO_PORTFOLIO"
+class_name = "Portfolio_Portfolio"
 
 [[durable_objects.bindings]]
-name = "PICKFLIX"
-class_name = "Pickflix"
+name = "PORTFOLIO_PICKFLIX"
+class_name = "Portfolio_Pickflix"
 
 [[durable_objects.bindings]]
-name = "HEADLESS_COMBOBOX_SVELTE_EXAMPLE"
-class_name = "HeadlessComboboxSvelteExample"
+name = "PORTFOLIO_HEADLESS_COMBOBOX_SVELTE_EXAMPLE"
+class_name = "Portfolio_HeadlessComboboxSvelteExample"
 
 [[durable_objects.bindings]]
-name = "HEADLESS_COMBOBOX_DOCS"
-class_name = "HeadlessComboboxDocs"
+name = "PORTFOLIO_HEADLESS_COMBOBOX_DOCS"
+class_name = "Portfolio_HeadlessComboboxDocs"
 
 [[durable_objects.bindings]]
-name = "TODO_APP"
-class_name = "TodoApp"
+name = "PORTFOLIO_TODO_APP"
+class_name = "Portfolio_TodoApp"
 
 [[durable_objects.bindings]]
-name = "IMAGE_SERVICE"
-class_name = "ImageService"
+name = "PORTFOLIO_IMAGE_SERVICE"
+class_name = "Portfolio_ImageService"
 
 [[durable_objects.bindings]]
-name = "CONNECT_FOUR"
-class_name = "ConnectFour"
+name = "PORTFOLIO_CONNECT_FOUR"
+class_name = "Portfolio_ConnectFour"
 
 [[durable_objects.bindings]]
-name = "NORMALIZER_APP"
-class_name = "NormalizerApp"
+name = "PORTFOLIO_NORMALIZER_APP"
+class_name = "Portfolio_NormalizerApp"
 
 [[durable_objects.bindings]]
-name = "SCREENSHOT_SERVICE"
-class_name = "ScreenshotService"
+name = "PORTFOLIO_SCREENSHOT_SERVICE"
+class_name = "Portfolio_ScreenshotService"
 
 [[durable_objects.bindings]]
-name = "SMART_DOG_DOOR"
-class_name = "SmartDogDoor"
+name = "PORTFOLIO_SMART_DOG_DOOR"
+class_name = "Portfolio_SmartDogDoor"
 
 [[durable_objects.bindings]]
-name = "QUIZ_MAKER"
-class_name = "QuizMaker"
+name = "PORTFOLIO_QUIZ_MAKER"
+class_name = "Portfolio_QuizMaker"
 
 [[durable_objects.bindings]]
-name = "ANIME_BLOG"
-class_name = "AnimeBlog"
+name = "PORTFOLIO_ANIME_BLOG"
+class_name = "Portfolio_AnimeBlog"
 
 [[durable_objects.bindings]]
-name = "SNAKE_GAME"
-class_name = "SnakeGame"
+name = "PORTFOLIO_SNAKE_GAME"
+class_name = "Portfolio_SnakeGame"
 
 [[durable_objects.bindings]]
-name = "MATCH_THREE"
-class_name = "MatchThree"
+name = "PORTFOLIO_MATCH_THREE"
+class_name = "Portfolio_MatchThree"
 
 [[durable_objects.bindings]]
-name = "MOVIEFINDER_APP_RUST"
-class_name = "MoviefinderAppRust"
+name = "PORTFOLIO_MOVIEFINDER_APP_RUST"
+class_name = "Portfolio_MoviefinderAppRust"
 
 [[durable_objects.bindings]]
-name = "MOVIEFINDER_APP_GO"
-class_name = "MoviefinderAppGo"
+name = "PORTFOLIO_MOVIEFINDER_APP_GO"
+class_name = "Portfolio_MoviefinderAppGo"
 
 [[durable_objects.bindings]]
-name = "MOVIEFINDER_APP_REACT"
-class_name = "MoviefinderAppReact"
+name = "PORTFOLIO_MOVIEFINDER_APP_REACT"
+class_name = "Portfolio_MoviefinderAppReact"
 
 [[durable_objects.bindings]]
-name = "MOVIEFINDER_APP_CLOJURESCRIPT"
-class_name = "MoviefinderAppClojurescript"
+name = "PORTFOLIO_MOVIEFINDER_APP_CLOJURESCRIPT"
+class_name = "Portfolio_MoviefinderAppClojurescript"
 
 [[durable_objects.bindings]]
-name = "SIMON_SAYS"
-class_name = "SimonSays"
+name = "PORTFOLIO_SIMON_SAYS"
+class_name = "Portfolio_SimonSays"
 
 # portfolio -> www.chrisvouga.dev
 [[routes]]
@@ -309,127 +309,131 @@ custom_domain = true
 pattern = "simonsays.chrisvouga.dev"
 custom_domain = true
 
-# Secrets Store (store_id = chrisvouga)
+# Secrets Store (store_id = 06a5a7ee662b4e41b778c4eeb447f030)
 [[secrets_store_secrets]]
-binding = "PICKFLIX__DATABASE_URL"
-store_id = "chrisvouga"
-secret_name = "PICKFLIX__DATABASE_URL"
+binding = "PORTFOLIO_PICKFLIX__DATABASE_URL"
+store_id = "06a5a7ee662b4e41b778c4eeb447f030"
+secret_name = "PORTFOLIO_PICKFLIX__DATABASE_URL"
 
 [[secrets_store_secrets]]
-binding = "PICKFLIX__PORT"
-store_id = "chrisvouga"
-secret_name = "PICKFLIX__PORT"
+binding = "PORTFOLIO_PICKFLIX__PORT"
+store_id = "06a5a7ee662b4e41b778c4eeb447f030"
+secret_name = "PORTFOLIO_PICKFLIX__PORT"
 
 [[secrets_store_secrets]]
-binding = "PICKFLIX__SECRET"
-store_id = "chrisvouga"
-secret_name = "PICKFLIX__SECRET"
+binding = "PORTFOLIO_PICKFLIX__SECRET"
+store_id = "06a5a7ee662b4e41b778c4eeb447f030"
+secret_name = "PORTFOLIO_PICKFLIX__SECRET"
 
 [[secrets_store_secrets]]
-binding = "PICKFLIX__SEND_GRID_API_KEY"
-store_id = "chrisvouga"
-secret_name = "PICKFLIX__SEND_GRID_API_KEY"
+binding = "PORTFOLIO_PICKFLIX__SEND_GRID_API_KEY"
+store_id = "06a5a7ee662b4e41b778c4eeb447f030"
+secret_name = "PORTFOLIO_PICKFLIX__SEND_GRID_API_KEY"
 
 [[secrets_store_secrets]]
-binding = "PICKFLIX__SEND_GRID_REGISTERED_EMAIL_ADDRESS"
-store_id = "chrisvouga"
-secret_name = "PICKFLIX__SEND_GRID_REGISTERED_EMAIL_ADDRESS"
+binding = "PORTFOLIO_PICKFLIX__SEND_GRID_REGISTERED_EMAIL_ADDRESS"
+store_id = "06a5a7ee662b4e41b778c4eeb447f030"
+secret_name = "PORTFOLIO_PICKFLIX__SEND_GRID_REGISTERED_EMAIL_ADDRESS"
 
 [[secrets_store_secrets]]
-binding = "PICKFLIX__SESSION_COOKIE_SECRET"
-store_id = "chrisvouga"
-secret_name = "PICKFLIX__SESSION_COOKIE_SECRET"
+binding = "PORTFOLIO_PICKFLIX__SESSION_COOKIE_SECRET"
+store_id = "06a5a7ee662b4e41b778c4eeb447f030"
+secret_name = "PORTFOLIO_PICKFLIX__SESSION_COOKIE_SECRET"
 
 [[secrets_store_secrets]]
-binding = "PICKFLIX__YOUTUBE_API_KEY"
-store_id = "chrisvouga"
-secret_name = "PICKFLIX__YOUTUBE_API_KEY"
+binding = "PORTFOLIO_PICKFLIX__YOUTUBE_API_KEY"
+store_id = "06a5a7ee662b4e41b778c4eeb447f030"
+secret_name = "PORTFOLIO_PICKFLIX__YOUTUBE_API_KEY"
 
 [[secrets_store_secrets]]
-binding = "PICKFLIX__TMDB_API_READ_ACCESS_TOKEN"
-store_id = "chrisvouga"
-secret_name = "PICKFLIX__TMDB_API_READ_ACCESS_TOKEN"
+binding = "PORTFOLIO_PICKFLIX__TMDB_API_READ_ACCESS_TOKEN"
+store_id = "06a5a7ee662b4e41b778c4eeb447f030"
+secret_name = "PORTFOLIO_PICKFLIX__TMDB_API_READ_ACCESS_TOKEN"
 
 [[secrets_store_secrets]]
-binding = "MOVIEFINDER_APP_RUST__TMDB_API_READ_ACCESS_TOKEN"
-store_id = "chrisvouga"
-secret_name = "MOVIEFINDER_APP_RUST__TMDB_API_READ_ACCESS_TOKEN"
+binding = "PORTFOLIO_MOVIEFINDER_APP_RUST__TMDB_API_READ_ACCESS_TOKEN"
+store_id = "06a5a7ee662b4e41b778c4eeb447f030"
+secret_name = "PORTFOLIO_MOVIEFINDER_APP_RUST__TMDB_API_READ_ACCESS_TOKEN"
 
 [[secrets_store_secrets]]
-binding = "MOVIEFINDER_APP_RUST__TWILIO_ACCOUNT_SID"
-store_id = "chrisvouga"
-secret_name = "MOVIEFINDER_APP_RUST__TWILIO_ACCOUNT_SID"
+binding = "PORTFOLIO_MOVIEFINDER_APP_RUST__TWILIO_ACCOUNT_SID"
+store_id = "06a5a7ee662b4e41b778c4eeb447f030"
+secret_name = "PORTFOLIO_MOVIEFINDER_APP_RUST__TWILIO_ACCOUNT_SID"
 
 [[secrets_store_secrets]]
-binding = "MOVIEFINDER_APP_RUST__TWILIO_AUTH_TOKEN"
-store_id = "chrisvouga"
-secret_name = "MOVIEFINDER_APP_RUST__TWILIO_AUTH_TOKEN"
+binding = "PORTFOLIO_MOVIEFINDER_APP_RUST__TWILIO_AUTH_TOKEN"
+store_id = "06a5a7ee662b4e41b778c4eeb447f030"
+secret_name = "PORTFOLIO_MOVIEFINDER_APP_RUST__TWILIO_AUTH_TOKEN"
 
 [[secrets_store_secrets]]
-binding = "MOVIEFINDER_APP_RUST__TWILIO_SERVICE_SID"
-store_id = "chrisvouga"
-secret_name = "MOVIEFINDER_APP_RUST__TWILIO_SERVICE_SID"
+binding = "PORTFOLIO_MOVIEFINDER_APP_RUST__TWILIO_SERVICE_SID"
+store_id = "06a5a7ee662b4e41b778c4eeb447f030"
+secret_name = "PORTFOLIO_MOVIEFINDER_APP_RUST__TWILIO_SERVICE_SID"
 
 [[secrets_store_secrets]]
-binding = "MOVIEFINDER_APP_GO__TMDB_API_READ_ACCESS_TOKEN"
-store_id = "chrisvouga"
-secret_name = "MOVIEFINDER_APP_GO__TMDB_API_READ_ACCESS_TOKEN"
+binding = "PORTFOLIO_MOVIEFINDER_APP_GO__TMDB_API_READ_ACCESS_TOKEN"
+store_id = "06a5a7ee662b4e41b778c4eeb447f030"
+secret_name = "PORTFOLIO_MOVIEFINDER_APP_GO__TMDB_API_READ_ACCESS_TOKEN"
 
 [[secrets_store_secrets]]
-binding = "MOVIEFINDER_APP_GO__TWILIO_ACCOUNT_SID"
-store_id = "chrisvouga"
-secret_name = "MOVIEFINDER_APP_GO__TWILIO_ACCOUNT_SID"
+binding = "PORTFOLIO_MOVIEFINDER_APP_GO__TWILIO_ACCOUNT_SID"
+store_id = "06a5a7ee662b4e41b778c4eeb447f030"
+secret_name = "PORTFOLIO_MOVIEFINDER_APP_GO__TWILIO_ACCOUNT_SID"
 
 [[secrets_store_secrets]]
-binding = "MOVIEFINDER_APP_GO__TWILIO_AUTH_TOKEN"
-store_id = "chrisvouga"
-secret_name = "MOVIEFINDER_APP_GO__TWILIO_AUTH_TOKEN"
+binding = "PORTFOLIO_MOVIEFINDER_APP_GO__TWILIO_AUTH_TOKEN"
+store_id = "06a5a7ee662b4e41b778c4eeb447f030"
+secret_name = "PORTFOLIO_MOVIEFINDER_APP_GO__TWILIO_AUTH_TOKEN"
 
 [[secrets_store_secrets]]
-binding = "MOVIEFINDER_APP_GO__TWILIO_SERVICE_SID"
-store_id = "chrisvouga"
-secret_name = "MOVIEFINDER_APP_GO__TWILIO_SERVICE_SID"
+binding = "PORTFOLIO_MOVIEFINDER_APP_GO__TWILIO_SERVICE_SID"
+store_id = "06a5a7ee662b4e41b778c4eeb447f030"
+secret_name = "PORTFOLIO_MOVIEFINDER_APP_GO__TWILIO_SERVICE_SID"
 
 [[secrets_store_secrets]]
-binding = "MOVIEFINDER_APP_REACT__TMDB_API_READ_ACCESS_TOKEN"
-store_id = "chrisvouga"
-secret_name = "MOVIEFINDER_APP_REACT__TMDB_API_READ_ACCESS_TOKEN"
+binding = "PORTFOLIO_MOVIEFINDER_APP_REACT__TMDB_API_READ_ACCESS_TOKEN"
+store_id = "06a5a7ee662b4e41b778c4eeb447f030"
+secret_name = "PORTFOLIO_MOVIEFINDER_APP_REACT__TMDB_API_READ_ACCESS_TOKEN"
 
 [[secrets_store_secrets]]
-binding = "MOVIEFINDER_APP_REACT__TWILIO_ACCOUNT_SID"
-store_id = "chrisvouga"
-secret_name = "MOVIEFINDER_APP_REACT__TWILIO_ACCOUNT_SID"
+binding = "PORTFOLIO_MOVIEFINDER_APP_REACT__TWILIO_ACCOUNT_SID"
+store_id = "06a5a7ee662b4e41b778c4eeb447f030"
+secret_name = "PORTFOLIO_MOVIEFINDER_APP_REACT__TWILIO_ACCOUNT_SID"
 
 [[secrets_store_secrets]]
-binding = "MOVIEFINDER_APP_REACT__TWILIO_AUTH_TOKEN"
-store_id = "chrisvouga"
-secret_name = "MOVIEFINDER_APP_REACT__TWILIO_AUTH_TOKEN"
+binding = "PORTFOLIO_MOVIEFINDER_APP_REACT__TWILIO_AUTH_TOKEN"
+store_id = "06a5a7ee662b4e41b778c4eeb447f030"
+secret_name = "PORTFOLIO_MOVIEFINDER_APP_REACT__TWILIO_AUTH_TOKEN"
 
 [[secrets_store_secrets]]
-binding = "MOVIEFINDER_APP_REACT__TWILIO_SERVICE_SID"
-store_id = "chrisvouga"
-secret_name = "MOVIEFINDER_APP_REACT__TWILIO_SERVICE_SID"
+binding = "PORTFOLIO_MOVIEFINDER_APP_REACT__TWILIO_SERVICE_SID"
+store_id = "06a5a7ee662b4e41b778c4eeb447f030"
+secret_name = "PORTFOLIO_MOVIEFINDER_APP_REACT__TWILIO_SERVICE_SID"
 
 [[secrets_store_secrets]]
-binding = "MOVIEFINDER_APP_CLOJURESCRIPT__TMDB_API_READ_ACCESS_TOKEN"
-store_id = "chrisvouga"
-secret_name = "MOVIEFINDER_APP_CLOJURESCRIPT__TMDB_API_READ_ACCESS_TOKEN"
+binding = "PORTFOLIO_MOVIEFINDER_APP_CLOJURESCRIPT__TMDB_API_READ_ACCESS_TOKEN"
+store_id = "06a5a7ee662b4e41b778c4eeb447f030"
+secret_name = "PORTFOLIO_MOVIEFINDER_APP_CLOJURESCRIPT__TMDB_API_READ_ACCESS_TOKEN"
 
 [[secrets_store_secrets]]
-binding = "MOVIEFINDER_APP_CLOJURESCRIPT__TWILIO_ACCOUNT_SID"
-store_id = "chrisvouga"
-secret_name = "MOVIEFINDER_APP_CLOJURESCRIPT__TWILIO_ACCOUNT_SID"
+binding = "PORTFOLIO_MOVIEFINDER_APP_CLOJURESCRIPT__TWILIO_ACCOUNT_SID"
+store_id = "06a5a7ee662b4e41b778c4eeb447f030"
+secret_name = "PORTFOLIO_MOVIEFINDER_APP_CLOJURESCRIPT__TWILIO_ACCOUNT_SID"
 
 [[secrets_store_secrets]]
-binding = "MOVIEFINDER_APP_CLOJURESCRIPT__TWILIO_AUTH_TOKEN"
-store_id = "chrisvouga"
-secret_name = "MOVIEFINDER_APP_CLOJURESCRIPT__TWILIO_AUTH_TOKEN"
+binding = "PORTFOLIO_MOVIEFINDER_APP_CLOJURESCRIPT__TWILIO_AUTH_TOKEN"
+store_id = "06a5a7ee662b4e41b778c4eeb447f030"
+secret_name = "PORTFOLIO_MOVIEFINDER_APP_CLOJURESCRIPT__TWILIO_AUTH_TOKEN"
 
 [[secrets_store_secrets]]
-binding = "MOVIEFINDER_APP_CLOJURESCRIPT__TWILIO_SERVICE_SID"
-store_id = "chrisvouga"
-secret_name = "MOVIEFINDER_APP_CLOJURESCRIPT__TWILIO_SERVICE_SID"
+binding = "PORTFOLIO_MOVIEFINDER_APP_CLOJURESCRIPT__TWILIO_SERVICE_SID"
+store_id = "06a5a7ee662b4e41b778c4eeb447f030"
+secret_name = "PORTFOLIO_MOVIEFINDER_APP_CLOJURESCRIPT__TWILIO_SERVICE_SID"
 
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["Portfolio", "Pickflix", "HeadlessComboboxSvelteExample", "HeadlessComboboxDocs", "TodoApp", "ImageService", "ConnectFour", "NormalizerApp", "ScreenshotService", "SmartDogDoor", "QuizMaker", "AnimeBlog", "SnakeGame", "MatchThree", "MoviefinderAppRust", "MoviefinderAppGo", "MoviefinderAppReact", "MoviefinderAppClojurescript", "SimonSays"]
+
+[[migrations]]
+tag = "v2-portfolio-prefix"
+new_sqlite_classes = ["Portfolio_Portfolio", "Portfolio_Pickflix", "Portfolio_HeadlessComboboxSvelteExample", "Portfolio_HeadlessComboboxDocs", "Portfolio_TodoApp", "Portfolio_ImageService", "Portfolio_ConnectFour", "Portfolio_NormalizerApp", "Portfolio_ScreenshotService", "Portfolio_SmartDogDoor", "Portfolio_QuizMaker", "Portfolio_AnimeBlog", "Portfolio_SnakeGame", "Portfolio_MatchThree", "Portfolio_MoviefinderAppRust", "Portfolio_MoviefinderAppGo", "Portfolio_MoviefinderAppReact", "Portfolio_MoviefinderAppClojurescript", "Portfolio_SimonSays"]

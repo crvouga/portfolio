@@ -6,7 +6,7 @@
  * SendGrid) use one GitHub secret each and are copied into every project's binding.
  *
  * Requires:
- *   CLOUDFLARE_SECRETS_STORE_ID — store ID (default: chrisvouga)
+ *   CLOUDFLARE_SECRETS_STORE_ID — Secrets Store ID (GitHub: secrets.CLOUDFLARE_SECRETS_STORE_ID)
  *   CLOUDFLARE_API_TOKEN + CLOUDFLARE_ACCOUNT_ID — for upsert via API (CI)
  *   GitHub secret names from getGithubRepoSecretNames() (see cloudflare-secret-names.ts)
  *
@@ -18,15 +18,18 @@ import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import {
-  DEFAULT_SECRETS_STORE_ID,
-  getSecretSeedPlan,
-} from "./cloudflare-secret-names.js";
+import { getSecretSeedPlan, getSecretsStoreId } from "./cloudflare-secret-names.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const CF_DIR = join(__dirname, "..", "cloudflare");
 
-const STORE_ID = process.env["CLOUDFLARE_SECRETS_STORE_ID"] ?? DEFAULT_SECRETS_STORE_ID;
+let STORE_ID: string;
+try {
+  STORE_ID = getSecretsStoreId();
+} catch (err) {
+  console.error(err instanceof Error ? err.message : err);
+  process.exit(1);
+}
 const API_TOKEN = process.env["CLOUDFLARE_API_TOKEN"];
 const ACCOUNT_ID = process.env["CLOUDFLARE_ACCOUNT_ID"];
 

@@ -4,6 +4,8 @@ Deploys all containerized projects to [Cloudflare Containers](https://developers
 
 All configuration is generated from [`../projects.ts`](../projects.ts) -- do not edit `wrangler.toml` or `src/index.ts` by hand.
 
+**Naming:** All resources use a `PORTFOLIO_` namespace (shared account with other work) — bindings like `PORTFOLIO_PICKFLIX`, classes like `Portfolio_Pickflix`, secrets like `PORTFOLIO_PICKFLIX__DATABASE_URL`. See [`../scripts/cloudflare-resource-names.ts`](../scripts/cloudflare-resource-names.ts).
+
 ## Files
 
 - `wrangler.toml` (generated) -- Worker + Container + Durable Object + route config
@@ -32,7 +34,7 @@ cd cloudflare && bun run deploy
 
 Each value is copied into per-project Secrets Store bindings (e.g. `MOVIEFINDER_APP_GO__TWILIO_AUTH_TOKEN`). `PORT`, `STAGE`, and pickflix `NODE_ENV` are set as plain container env vars, not GitHub secrets.
 
-Secrets Store ID defaults to `chrisvouga` (override locally with `CLOUDFLARE_SECRETS_STORE_ID`).
+Secrets Store `store_id` in `wrangler.toml` comes only from `CLOUDFLARE_SECRETS_STORE_ID` (GitHub repo secret in CI; export the same name locally before `bun run generate-cloudflare`).
 
 ## DNS
 
