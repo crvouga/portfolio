@@ -27,20 +27,11 @@ export type Project = {
   readonly galleryImageSrc: string[];
   readonly youTubeVideoId?: string;
   readonly topics: string[];
-};
-
-export type AwsDeployProject = {
-  readonly id: string;
-  readonly githubRepo: string;
-  readonly cloneDir: string;
-  readonly ecrRepositoryName: string;
-  readonly hostname: string;
-  readonly port: number;
-  readonly dockerContext: string;
-  readonly dockerfile: string;
-  readonly isPortfolio: boolean;
-  readonly environment: Readonly<Record<string, string>>;
-  readonly secrets: readonly string[];
+  readonly githubRepo?: string;
+  readonly hostname?: string;
+  readonly port?: number;
+  readonly dockerContext?: string;
+  readonly secrets?: readonly string[];
 };
 
 // ---------------------------------------------------------------------------
@@ -89,19 +80,6 @@ const LAMDERA_HREF = "https://lamdera.com/";
 
 export const PROJECTS: readonly Project[] = [
   {
-    id: "normalizer-app",
-    title: "normalizer.app",
-    setting: "side",
-    deployment: { t: "public", url: "https://normalizer.app/" },
-    code: { t: "private" },
-    description:
-      "A web application that automates data normalization workflows, transforming tabular data (Excel, CSV) between schemas without manual Excel manipulation or custom Python scripts. Streamlines data processing for teams handling diverse data formats.",
-    imageAlt: IMAGE_ALT,
-    imageSrc: ["/normalizer-app-screenshot.optimized.webp"],
-    galleryImageSrc: ["/normalizer-app-screenshot.png"],
-    topics: ["typescript", "react", "tailwind", "bun", "postgres", "s3", "trpc", "zod"],
-  },
-  {
     id: "gamezilla",
     title: "gamezilla.app",
     setting: "side",
@@ -110,12 +88,25 @@ export const PROJECTS: readonly Project[] = [
     description: `${externalLink(GAMEZILLA_HREF, "gamezilla.app")} is a real-time multiplayer gaming platform built with a full-stack TypeScript implementation of the Elm architecture. Successfully migrated from the ${externalLink(LAMDERA_HREF, "Lamdera")} platform, demonstrating expertise in complex system migrations and real-time application architecture.`,
     imageAlt: IMAGE_ALT,
     imageSrc: ["/gamezilla-app-screenshot.optimized.webp", "/gamezilla.optimized.webp"],
+
     galleryImageSrc: [
       "/gamezilla-app-screenshot.png",
       toYouTubeVideoUrl({ youTubeVideoId: "VSLpdPvHbD4", autoplay: true }),
       "/gamezilla.png",
     ],
     topics: ["typescript", "react", "postgres", "tailwind", "websocket", "bun", "sqlite"],
+  },
+  {
+    id: 'geviti',
+    title: 'Geviti',
+    setting: 'work',
+    deployment: { t: 'public', url: 'https://www.gogeviti.com/' },
+    code: { t: 'private' },
+    description: 'Building features for a comprehensive health and longevity platform that combines bloodwork analysis, personalized supplement protocols, prescription therapies, and care team coordination. Developing tools that help users track their health metrics and optimize their well-being through proactive, data-driven care.',
+    imageAlt: IMAGE_ALT,
+    imageSrc: ['/geviti-screenshot.optimized.webp'],
+    galleryImageSrc: ['/geviti-screenshot.png'],
+    topics: ['typescript', 'react', 'postgres', 'bun', 'aws'],
   },
   {
     id: "triangulator",
@@ -211,6 +202,14 @@ export const PROJECTS: readonly Project[] = [
       "express", "heroku", "jest", "material-ui", "nodejs", "postgres",
       "ramda", "react", "redux", "redux-saga", "typescript", "css", "react-query",
     ],
+    githubRepo: "crvouga/pickflix-v1",
+    hostname: "pickflix.chrisvouga.dev",
+    port: 3000,
+    secrets: [
+      "NODE_ENV", "PORT", "DATABASE_URL", "SECRET",
+      "SEND_GRID_API_KEY", "SEND_GRID_REGISTERED_EMAIL_ADDRESS",
+      "SESSION_COOKIE_SECRET", "YOUTUBE_API_KEY", "TMDB_API_READ_ACCESS_TOKEN",
+    ],
   },
   {
     id: "sun-devils",
@@ -240,6 +239,26 @@ export const PROJECTS: readonly Project[] = [
     imageSrc: ["./headless-combobox-screenshot.optimized.webp"],
     galleryImageSrc: ["./headless-combobox-screenshot.png"],
     topics: ["typescript"],
+    githubRepo: "crvouga/headless-combobox",
+    hostname: "svelte.headlesscombobox.chrisvouga.dev",
+    port: 80,
+    dockerContext: "example/svelte",
+  },
+  {
+    id: "headless-combobox-docs",
+    title: "headless-combobox docs",
+    setting: "side",
+    deployment: { t: "public", url: "https://headlesscombobox.chrisvouga.dev" },
+    code: { t: "public", url: "https://github.com/crvouga/headless-combobox" },
+    description:
+      "Documentation site for the headless-combobox library.",
+    imageAlt: IMAGE_ALT,
+    imageSrc: [],
+    galleryImageSrc: [],
+    topics: ["typescript"],
+    githubRepo: "crvouga/headless-combobox",
+    hostname: "headlesscombobox.chrisvouga.dev",
+    port: 80,
   },
   {
     id: "moviefinder-app",
@@ -254,6 +273,7 @@ export const PROJECTS: readonly Project[] = [
     galleryImageSrc: ["/moviefinder-app-screenshot.png"],
     topics: ["rust", "tailwind", "postgres", "datastar"],
   },
+
   {
     id: "todo-app",
     title: "Fullstack Todo App",
@@ -266,6 +286,9 @@ export const PROJECTS: readonly Project[] = [
     imageSrc: ["/fullstack-todo-app-screenshot.optimized.webp", "/todo.optimized.webp"],
     galleryImageSrc: ["/fullstack-todo-app-screenshot.png", "/todo.png"],
     topics: ["typescript", "vue", "css", "express", "javascript", "tailwind", "nodejs", "mongodb"],
+    githubRepo: "crvouga/todo-v1",
+    hostname: "todo.chrisvouga.dev",
+    port: 80,
   },
   {
     id: "image-service",
@@ -279,6 +302,9 @@ export const PROJECTS: readonly Project[] = [
     imageSrc: ["/image-service-screenshot.optimized.webp"],
     galleryImageSrc: ["/image-service-screenshot.png"],
     topics: ["go"],
+    githubRepo: "crvouga/image-service",
+    hostname: "imageservice.chrisvouga.dev",
+    port: 80,
   },
   {
     id: "connect-four",
@@ -299,6 +325,22 @@ export const PROJECTS: readonly Project[] = [
       "css", "greensock", "heroku", "material-ui", "nodejs",
       "ramda", "redux", "redux-saga", "javascript", "socket-io",
     ],
+    githubRepo: "crvouga/connect-four",
+    hostname: "connectfour.chrisvouga.dev",
+    port: 80,
+  },
+  {
+    id: "normalizer-app",
+    title: "normalizer.app",
+    setting: "side",
+    deployment: { t: "public", url: "https://normalizer.app/" },
+    code: { t: "public", url: "https://github.com/crvouga/normalizer.app.git" },
+    description:
+      "A web application that automates data normalization workflows, transforming tabular data (Excel, CSV) between schemas without manual Excel manipulation or custom Python scripts. Streamlines data processing for teams handling diverse data formats.",
+    imageAlt: IMAGE_ALT,
+    imageSrc: ["/normalizer-app-screenshot.optimized.webp"],
+    galleryImageSrc: ["/normalizer-app-screenshot.png"],
+    topics: ["typescript", "react", "tailwind", "bun", "postgres", "s3", "trpc", "zod"],
   },
   {
     id: "airr",
@@ -340,6 +382,9 @@ export const PROJECTS: readonly Project[] = [
       "css", "heroku", "material-ui", "nodejs", "postgres",
       "puppeteer", "react", "react-query", "typescript", "supabase",
     ],
+    githubRepo: "crvouga/screenshot-service",
+    hostname: "screenshotservice.chrisvouga.dev",
+    port: 80,
   },
   {
     id: "smart-dog-door",
@@ -353,6 +398,9 @@ export const PROJECTS: readonly Project[] = [
     imageSrc: [],
     galleryImageSrc: [],
     topics: ["python"],
+    githubRepo: "crvouga/smart-dog-door-python",
+    hostname: "smartdogdoor.chrisvouga.dev",
+    port: 80,
   },
   {
     id: "orchard",
@@ -379,6 +427,9 @@ export const PROJECTS: readonly Project[] = [
     imageSrc: [],
     galleryImageSrc: [],
     topics: ["css", "express", "nodejs", "tailwind", "typescript", "vue"],
+    githubRepo: "crvouga/quiz-maker",
+    hostname: "quizmaker.chrisvouga.dev",
+    port: 80,
   },
   {
     id: "courier-website",
@@ -409,6 +460,9 @@ export const PROJECTS: readonly Project[] = [
     imageSrc: ["/anime-blog-screenshot.optimized.webp", "/anime.optimized.webp"],
     galleryImageSrc: ["/anime-blog-screenshot.png", "/anime.png"],
     topics: ["css", "javascript", "sanity", "vue", "bootstrap", "graphql", "gridsome"],
+    githubRepo: "crvouga/anime",
+    hostname: "anime.chrisvouga.dev",
+    port: 80,
   },
   {
     id: "snake-game",
@@ -426,6 +480,9 @@ export const PROJECTS: readonly Project[] = [
       "/snake.png",
     ],
     topics: ["css", "javascript", "ramda", "react"],
+    githubRepo: "crvouga/snake",
+    hostname: "snake.chrisvouga.dev",
+    port: 80,
   },
   {
     id: "match-three",
@@ -442,6 +499,77 @@ export const PROJECTS: readonly Project[] = [
       toYouTubeVideoUrl({ youTubeVideoId: "VBrlDgmXSoA", autoplay: true, mute: true }),
     ],
     topics: ["css", "javascript", "ramda", "react", "redux", "redux-saga"],
+    githubRepo: "crvouga/match-three",
+    hostname: "matchthree.chrisvouga.dev",
+    port: 80,
+  },
+  {
+    id: "moviefinder-app-rust",
+    title: "moviefinder.app (Rust)",
+    setting: "side",
+    deployment: { t: "public", url: "https://moviefinder-app-rust.chrisvouga.dev" },
+    code: { t: "public", url: "https://github.com/crvouga/moviefinder.app-rust" },
+    description:
+      "Rust implementation of the moviefinder.app movie discovery platform.",
+    imageAlt: IMAGE_ALT,
+    imageSrc: [],
+    galleryImageSrc: [],
+    topics: ["rust"],
+    githubRepo: "crvouga/moviefinder.app-rust",
+    hostname: "moviefinder-app-rust.chrisvouga.dev",
+    port: 80,
+    secrets: ["STAGE", "PORT", "TMDB_API_READ_ACCESS_TOKEN", "TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN", "TWILIO_SERVICE_SID"],
+  },
+  {
+    id: "moviefinder-app-go",
+    title: "moviefinder.app (Go)",
+    setting: "side",
+    deployment: { t: "public", url: "https://moviefinder-app-go.chrisvouga.dev" },
+    code: { t: "public", url: "https://github.com/crvouga/moviefinder.app-go" },
+    description:
+      "Go implementation of the moviefinder.app movie discovery platform.",
+    imageAlt: IMAGE_ALT,
+    imageSrc: [],
+    galleryImageSrc: [],
+    topics: ["go"],
+    githubRepo: "crvouga/moviefinder.app-go",
+    hostname: "moviefinder-app-go.chrisvouga.dev",
+    port: 80,
+    secrets: ["STAGE", "PORT", "TMDB_API_READ_ACCESS_TOKEN", "TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN", "TWILIO_SERVICE_SID"],
+  },
+  {
+    id: "moviefinder-app-react",
+    title: "moviefinder.app (React)",
+    setting: "side",
+    deployment: { t: "public", url: "https://moviefinder-app-react.chrisvouga.dev" },
+    code: { t: "public", url: "https://github.com/crvouga/moviefinder.app-react" },
+    description:
+      "React implementation of the moviefinder.app movie discovery platform.",
+    imageAlt: IMAGE_ALT,
+    imageSrc: [],
+    galleryImageSrc: [],
+    topics: ["react", "typescript"],
+    githubRepo: "crvouga/moviefinder.app-react",
+    hostname: "moviefinder-app-react.chrisvouga.dev",
+    port: 80,
+    secrets: ["STAGE", "PORT", "TMDB_API_READ_ACCESS_TOKEN", "TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN", "TWILIO_SERVICE_SID"],
+  },
+  {
+    id: "moviefinder-app-clojurescript",
+    title: "moviefinder.app (ClojureScript)",
+    setting: "side",
+    deployment: { t: "public", url: "https://moviefinder-app-clojurescript.chrisvouga.dev" },
+    code: { t: "public", url: "https://github.com/crvouga/moviefinder.app-clojurescript" },
+    description:
+      "ClojureScript implementation of the moviefinder.app movie discovery platform.",
+    imageAlt: IMAGE_ALT,
+    imageSrc: [],
+    galleryImageSrc: [],
+    topics: ["clojurescript"],
+    githubRepo: "crvouga/moviefinder.app-clojurescript",
+    hostname: "moviefinder-app-clojurescript.chrisvouga.dev",
+    port: 8888,
+    secrets: ["PORT", "TMDB_API_READ_ACCESS_TOKEN", "TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN", "TWILIO_SERVICE_SID"],
   },
   {
     id: "simon-says",
@@ -458,6 +586,9 @@ export const PROJECTS: readonly Project[] = [
       toYouTubeVideoUrl({ youTubeVideoId: "WrUFzlKL0E0", autoplay: true, mute: true }),
     ],
     topics: ["css", "javascript", "ramda", "react", "redux", "redux-saga"],
+    githubRepo: "crvouga/simon-says",
+    hostname: "simonsays.chrisvouga.dev",
+    port: 80,
   },
   {
     id: "cheese",
@@ -474,6 +605,9 @@ export const PROJECTS: readonly Project[] = [
       "/cheese.png",
     ],
     topics: ["css", "typescript", "material-ui", "react", "firebase"],
+    githubRepo: "crvouga/cheese",
+    hostname: "cheese.chrisvouga.dev",
+    port: 80,
   },
 ];
 
@@ -486,274 +620,26 @@ export const SIDE_PROJECTS: readonly Project[] = PROJECTS.filter(
 );
 
 // ---------------------------------------------------------------------------
-// AWS Deployable Services
-// ---------------------------------------------------------------------------
-
-export const DEPLOY_PROJECTS: readonly AwsDeployProject[] = [
-  {
-    id: "portfolio",
-    githubRepo: "crvouga/chrisvouga.dev",
-    cloneDir: "chrisvouga.dev",
-    ecrRepositoryName: "portfolio",
-    hostname: "www.chrisvouga.dev",
-    port: 80,
-    dockerContext: ".",
-    dockerfile: "Dockerfile",
-    isPortfolio: true,
-    environment: {},
-    secrets: [],
-  },
-  {
-    id: "pickflix",
-    githubRepo: "crvouga/pickflix-v1",
-    cloneDir: "pickflix-v1",
-    ecrRepositoryName: "pickflix",
-    hostname: "pickflix.chrisvouga.dev",
-    port: 3000,
-    dockerContext: ".",
-    dockerfile: "Dockerfile",
-    isPortfolio: false,
-    environment: {},
-    secrets: [
-      "NODE_ENV", "PORT", "DATABASE_URL", "SECRET",
-      "SEND_GRID_API_KEY", "SEND_GRID_REGISTERED_EMAIL_ADDRESS",
-      "SESSION_COOKIE_SECRET", "YOUTUBE_API_KEY", "TMDB_API_READ_ACCESS_TOKEN",
-    ],
-  },
-  {
-    id: "headless-combobox-docs",
-    githubRepo: "crvouga/headless-combobox",
-    cloneDir: "headless-combobox",
-    ecrRepositoryName: "headless-combobox-docs",
-    hostname: "headlesscombobox.chrisvouga.dev",
-    port: 80,
-    dockerContext: ".",
-    dockerfile: "Dockerfile",
-    isPortfolio: false,
-    environment: {},
-    secrets: [],
-  },
-  {
-    id: "headless-combobox-svelte-example",
-    githubRepo: "crvouga/headless-combobox",
-    cloneDir: "headless-combobox",
-    ecrRepositoryName: "headless-combobox-svelte-example",
-    hostname: "svelte.headlesscombobox.chrisvouga.dev",
-    port: 80,
-    dockerContext: "example/svelte",
-    dockerfile: "Dockerfile",
-    isPortfolio: false,
-    environment: {},
-    secrets: [],
-  },
-  {
-    id: "moviefinder-app-rust",
-    githubRepo: "crvouga/moviefinder.app-rust",
-    cloneDir: "moviefinder.app-rust",
-    ecrRepositoryName: "moviefinder-app-rust",
-    hostname: "moviefinder-app-rust.chrisvouga.dev",
-    port: 80,
-    dockerContext: ".",
-    dockerfile: "Dockerfile",
-    isPortfolio: false,
-    environment: {},
-    secrets: ["STAGE", "PORT", "TMDB_API_READ_ACCESS_TOKEN", "TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN", "TWILIO_SERVICE_SID"],
-  },
-  {
-    id: "moviefinder-app-go",
-    githubRepo: "crvouga/moviefinder.app-go",
-    cloneDir: "moviefinder.app-go",
-    ecrRepositoryName: "moviefinder-app-go",
-    hostname: "moviefinder-app-go.chrisvouga.dev",
-    port: 80,
-    dockerContext: ".",
-    dockerfile: "Dockerfile",
-    isPortfolio: false,
-    environment: {},
-    secrets: ["STAGE", "PORT", "TMDB_API_READ_ACCESS_TOKEN", "TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN", "TWILIO_SERVICE_SID"],
-  },
-  {
-    id: "moviefinder-app-react",
-    githubRepo: "crvouga/moviefinder.app-react",
-    cloneDir: "moviefinder.app-react",
-    ecrRepositoryName: "moviefinder-app-react",
-    hostname: "moviefinder-app-react.chrisvouga.dev",
-    port: 80,
-    dockerContext: ".",
-    dockerfile: "Dockerfile",
-    isPortfolio: false,
-    environment: {},
-    secrets: ["STAGE", "PORT", "TMDB_API_READ_ACCESS_TOKEN", "TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN", "TWILIO_SERVICE_SID"],
-  },
-  {
-    id: "moviefinder-app-clojurescript",
-    githubRepo: "crvouga/moviefinder.app-clojurescript",
-    cloneDir: "moviefinder.app-clojurescript",
-    ecrRepositoryName: "moviefinder-app-clojurescript",
-    hostname: "moviefinder-app-clojurescript.chrisvouga.dev",
-    port: 8888,
-    dockerContext: ".",
-    dockerfile: "Dockerfile",
-    isPortfolio: false,
-    environment: {},
-    secrets: ["PORT", "TMDB_API_READ_ACCESS_TOKEN", "TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN", "TWILIO_SERVICE_SID"],
-  },
-  {
-    id: "todo-app",
-    githubRepo: "crvouga/todo-v1",
-    cloneDir: "todo-v1",
-    ecrRepositoryName: "todo-app",
-    hostname: "todo.chrisvouga.dev",
-    port: 80,
-    dockerContext: ".",
-    dockerfile: "Dockerfile",
-    isPortfolio: false,
-    environment: {},
-    secrets: [],
-  },
-  {
-    id: "image-service",
-    githubRepo: "crvouga/image-service",
-    cloneDir: "image-service",
-    ecrRepositoryName: "image-service",
-    hostname: "imageservice.chrisvouga.dev",
-    port: 80,
-    dockerContext: ".",
-    dockerfile: "Dockerfile",
-    isPortfolio: false,
-    environment: {},
-    secrets: [],
-  },
-  {
-    id: "connect-four",
-    githubRepo: "crvouga/connect-four",
-    cloneDir: "connect-four",
-    ecrRepositoryName: "connect-four",
-    hostname: "connectfour.chrisvouga.dev",
-    port: 80,
-    dockerContext: ".",
-    dockerfile: "Dockerfile",
-    isPortfolio: false,
-    environment: {},
-    secrets: [],
-  },
-  {
-    id: "screenshot-service",
-    githubRepo: "crvouga/screenshot-service",
-    cloneDir: "screenshot-service",
-    ecrRepositoryName: "screenshot-service",
-    hostname: "screenshotservice.chrisvouga.dev",
-    port: 80,
-    dockerContext: ".",
-    dockerfile: "Dockerfile",
-    isPortfolio: false,
-    environment: {},
-    secrets: [],
-  },
-  {
-    id: "anime-blog",
-    githubRepo: "crvouga/anime",
-    cloneDir: "anime",
-    ecrRepositoryName: "anime-blog",
-    hostname: "anime.chrisvouga.dev",
-    port: 80,
-    dockerContext: ".",
-    dockerfile: "Dockerfile",
-    isPortfolio: false,
-    environment: {},
-    secrets: [],
-  },
-  {
-    id: "snake-game",
-    githubRepo: "crvouga/snake",
-    cloneDir: "snake",
-    ecrRepositoryName: "snake-game",
-    hostname: "snake.chrisvouga.dev",
-    port: 80,
-    dockerContext: ".",
-    dockerfile: "Dockerfile",
-    isPortfolio: false,
-    environment: {},
-    secrets: [],
-  },
-  {
-    id: "match-three",
-    githubRepo: "crvouga/match-three",
-    cloneDir: "match-three",
-    ecrRepositoryName: "match-three",
-    hostname: "matchthree.chrisvouga.dev",
-    port: 80,
-    dockerContext: ".",
-    dockerfile: "Dockerfile",
-    isPortfolio: false,
-    environment: {},
-    secrets: [],
-  },
-  {
-    id: "simon-says",
-    githubRepo: "crvouga/simon-says",
-    cloneDir: "simon-says",
-    ecrRepositoryName: "simon-says",
-    hostname: "simonsays.chrisvouga.dev",
-    port: 80,
-    dockerContext: ".",
-    dockerfile: "Dockerfile",
-    isPortfolio: false,
-    environment: {},
-    secrets: [],
-  },
-  {
-    id: "quiz-maker",
-    githubRepo: "crvouga/quiz-maker",
-    cloneDir: "quiz-maker",
-    ecrRepositoryName: "quiz-maker",
-    hostname: "quizmaker.chrisvouga.dev",
-    port: 80,
-    dockerContext: ".",
-    dockerfile: "Dockerfile",
-    isPortfolio: false,
-    environment: {},
-    secrets: [],
-  },
-  {
-    id: "cheese",
-    githubRepo: "crvouga/cheese",
-    cloneDir: "cheese",
-    ecrRepositoryName: "cheese",
-    hostname: "cheese.chrisvouga.dev",
-    port: 80,
-    dockerContext: ".",
-    dockerfile: "Dockerfile",
-    isPortfolio: false,
-    environment: {},
-    secrets: [],
-  },
-  {
-    id: "smart-dog-door",
-    githubRepo: "crvouga/smart-dog-door-python",
-    cloneDir: "smart-dog-door-python",
-    ecrRepositoryName: "smart-dog-door",
-    hostname: "smartdogdoor.chrisvouga.dev",
-    port: 80,
-    dockerContext: ".",
-    dockerfile: "Dockerfile",
-    isPortfolio: false,
-    environment: {},
-    secrets: [],
-  },
-] as const;
-
-// ---------------------------------------------------------------------------
 // Utilities
 // ---------------------------------------------------------------------------
+
+export type DeployableProject = Project &
+  Required<Pick<Project, "githubRepo" | "hostname" | "port">>;
+
+export function getDeployableProjects(): readonly DeployableProject[] {
+  return PROJECTS.filter(
+    (p): p is DeployableProject =>
+      p.githubRepo != null && p.hostname != null && p.port != null,
+  );
+}
 
 export function getUniqueCloneRepos(): readonly { repo: string; dir: string }[] {
   const seen = new Set<string>();
   const out: { repo: string; dir: string }[] = [];
-  for (const p of DEPLOY_PROJECTS) {
-    if (p.isPortfolio || seen.has(p.githubRepo)) continue;
+  for (const p of getDeployableProjects()) {
+    if (p.id === "portfolio" || seen.has(p.githubRepo)) continue;
     seen.add(p.githubRepo);
-    out.push({ repo: p.githubRepo, dir: p.cloneDir });
+    out.push({ repo: p.githubRepo, dir: p.githubRepo.split("/").pop()! });
   }
   return out;
 }

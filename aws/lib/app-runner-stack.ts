@@ -4,7 +4,7 @@ import * as ecr from "aws-cdk-lib/aws-ecr";
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as cr from "aws-cdk-lib/custom-resources";
 import { Construct } from "constructs";
-import { DEPLOY_PROJECTS } from "../../infrastructure/projects.js";
+import { getDeployableProjects } from "../../projects.js";
 
 export type AppRunnerStackProps = cdk.StackProps & {
   readonly ecr: Readonly<Record<string, ecr.Repository>>;
@@ -53,21 +53,16 @@ export class AppRunnerStack extends cdk.Stack {
       minSize: 1,
     });
 
-    for (const project of DEPLOY_PROJECTS) {
-      const repository = props.ecr[project.ecrRepositoryName];
+    for (const project of getDeployableProjects()) {
+      const repository = props.ecr[project.id];
       if (!repository) {
-        throw new Error(`Missing ECR repo for ${project.id}: ${project.ecrRepositoryName}`);
+        throw new Error(`Missing ECR repo for ${project.id}`);
       }
 
       const safeId = safeCfnId(project.id);
       const imageIdentifier = `${repository.repositoryUri}:latest`;
 
-      const runtimeEnvironmentVariables = Object.entries(project.environment).map(([name, value]) => ({
-        name,
-        value,
-      }));
-
-      const runtimeEnvironmentSecrets = project.secrets.map((name) => ({
+      const runtimeEnvironmentSecrets = (project.secrets ?? []).map((name) => ({
         name,
         value: ssmArn(account, region, `/chrisvouga/${project.id}/${name}`),
       }));
@@ -80,8 +75,6 @@ export class AppRunnerStack extends cdk.Stack {
           imageRepository: {
             imageConfiguration: {
               port: String(project.port),
-              runtimeEnvironmentVariables:
-                runtimeEnvironmentVariables.length > 0 ? runtimeEnvironmentVariables : undefined,
               runtimeEnvironmentSecrets:
                 runtimeEnvironmentSecrets.length > 0 ? runtimeEnvironmentSecrets : undefined,
             },

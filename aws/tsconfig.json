@@ -20,9 +20,9 @@
     "strictPropertyInitialization": false,
     "noEmit": true,
     "skipLibCheck": true,
-    "rootDirs": [".", "../infrastructure"],
+    "rootDirs": [".", ".."],
     "typeRoots": ["./node_modules/@types"]
   },
-  "include": ["bin/**/*.ts", "lib/**/*.ts", "../infrastructure/projects.ts"],
+  "include": ["bin/**/*.ts", "lib/**/*.ts", "../projects.ts"],
   "exclude": ["node_modules", "cdk.out"]
 }

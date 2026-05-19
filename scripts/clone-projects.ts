@@ -5,7 +5,7 @@
 import { execSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { getUniqueCloneRepos } from "../projects";
+import { getUniqueCloneRepos } from "../projects.js";
 
 const root = execSync("git rev-parse --show-toplevel", { encoding: "utf-8" }).trim();
 const projectsDir = join(root, "projects");
