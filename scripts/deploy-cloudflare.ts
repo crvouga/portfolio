@@ -2,7 +2,7 @@
  * Deploy wrapper around Wrangler with clearer Forbidden diagnostics.
  */
 import { spawnSync } from "node:child_process";
-import { existsSync } from "node:fs";
+import { appendFileSync, existsSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -60,6 +60,47 @@ function printImageRegistryNotConfiguredHelp(): void {
   console.error("- Verify repository exists and is accessible: `docker.io/<username>/chrisvouga-dev`");
 }
 
+function inferLikelyZone(hostname: string): string {
+  if (hostname.startsWith("www.")) return hostname.slice(4);
+  const parts = hostname.split(".");
+  if (parts.length >= 2) {
+    return `${parts[parts.length - 2]}.${parts[parts.length - 1]}`;
+  }
+  return hostname;
+}
+
+function writeSummary(lines: readonly string[]): void {
+  const summaryPath = process.env["GITHUB_STEP_SUMMARY"];
+  if (!summaryPath) return;
+  appendFileSync(summaryPath, `${lines.join("\n")}\n`);
+}
+
+function printZoneNotFoundHelp(hostname: string, accountId: string): void {
+  const likelyZone = inferLikelyZone(hostname);
+  console.error(`\nDeploy failed: Cloudflare zone for \`${hostname}\` was not found.`);
+  console.error(`Likely required zone: \`${likelyZone}\``);
+  console.error("\nNameserver TODO:");
+  console.error(`1) Add/import zone \`${likelyZone}\` in Cloudflare under account \`${accountId}\`.`);
+  console.error(`2) In Cloudflare, copy the assigned nameservers for \`${likelyZone}\`.`);
+  console.error("3) In your registrar/Squarespace, set custom nameservers to Cloudflare's values.");
+  console.error("4) Wait for DNS delegation propagation (can take up to 48h).");
+  console.error("5) Re-run Deployment Pipeline.");
+
+  writeSummary([
+    "## Deploy blocked: zone not found",
+    "",
+    `Wrangler could not find Cloudflare zone for \`${hostname}\`.`,
+    `Likely required zone: \`${likelyZone}\`.`,
+    "",
+    "### Nameserver TODO",
+    `1. Add/import zone \`${likelyZone}\` in Cloudflare under account \`${accountId}\`.`,
+    `2. Copy the assigned nameservers from Cloudflare for \`${likelyZone}\`.`,
+    "3. In registrar/Squarespace, set **custom nameservers** to those Cloudflare nameservers.",
+    "4. Wait for delegation propagation (up to 48h).",
+    "5. Re-run this workflow.",
+  ]);
+}
+
 function main(): void {
   if (!existsSync(join(CF_DIR, "wrangler.toml"))) {
     console.error(`Missing ${CF_DIR}/wrangler.toml. Run 'bun run generate-cloudflare' first.`);
@@ -74,8 +115,14 @@ function main(): void {
 
     if (result.output.includes("IMAGE_REGISTRY_NOT_CONFIGURED")) {
       printImageRegistryNotConfiguredHelp();
-    } else if (result.output.includes("[ERROR] Forbidden") || result.output.includes("code: 10000")) {
-      printForbiddenHelp(accountId);
+    } else {
+      const zoneMatch = result.output.match(/Could not find zone for `([^`]+)`/);
+      if (zoneMatch) {
+        printZoneNotFoundHelp(zoneMatch[1]!, accountId);
+      }
+      if (result.output.includes("[ERROR] Forbidden") || result.output.includes("code: 10000")) {
+        printForbiddenHelp(accountId);
+      }
     }
     process.exit(result.status ?? 1);
   } catch (err) {
