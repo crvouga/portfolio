@@ -19,6 +19,7 @@ import {
   PREFIXED_MIGRATION_TAG,
   containerClassName,
   doBindingName,
+  pascalCase,
 } from "./cloudflare-resource-names.js";
 
 let SECRETS_STORE_ID: string;
@@ -349,6 +350,18 @@ function generateIndexTs(): string {
       lines.push(`  }`);
     }
     lines.push(`}`);
+    lines.push("");
+  }
+
+  // Legacy class aliases keep old migrations valid after renaming classes.
+  // Example: `Portfolio` -> `Portfolio_Portfolio`
+  const legacyClassSet = new Set<string>(LEGACY_CONTAINER_CLASS_NAMES);
+  for (const t of TARGETS) {
+    const prefixedClassName = containerClassName(t.id);
+    const legacyClassName = pascalCase(t.id);
+    if (legacyClassName === prefixedClassName) continue;
+    if (!legacyClassSet.has(legacyClassName)) continue;
+    lines.push(`export class ${legacyClassName} extends ${prefixedClassName} {}`);
     lines.push("");
   }
 

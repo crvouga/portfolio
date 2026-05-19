@@ -317,6 +317,44 @@ export class Portfolio_SimonSays extends Container<Env> {
   sleepAfter = "5m";
 }
 
+export class Portfolio extends Portfolio_Portfolio {}
+
+export class Pickflix extends Portfolio_Pickflix {}
+
+export class HeadlessComboboxSvelteExample extends Portfolio_HeadlessComboboxSvelteExample {}
+
+export class HeadlessComboboxDocs extends Portfolio_HeadlessComboboxDocs {}
+
+export class TodoApp extends Portfolio_TodoApp {}
+
+export class ImageService extends Portfolio_ImageService {}
+
+export class ConnectFour extends Portfolio_ConnectFour {}
+
+export class NormalizerApp extends Portfolio_NormalizerApp {}
+
+export class ScreenshotService extends Portfolio_ScreenshotService {}
+
+export class SmartDogDoor extends Portfolio_SmartDogDoor {}
+
+export class QuizMaker extends Portfolio_QuizMaker {}
+
+export class AnimeBlog extends Portfolio_AnimeBlog {}
+
+export class SnakeGame extends Portfolio_SnakeGame {}
+
+export class MatchThree extends Portfolio_MatchThree {}
+
+export class MoviefinderAppRust extends Portfolio_MoviefinderAppRust {}
+
+export class MoviefinderAppGo extends Portfolio_MoviefinderAppGo {}
+
+export class MoviefinderAppReact extends Portfolio_MoviefinderAppReact {}
+
+export class MoviefinderAppClojurescript extends Portfolio_MoviefinderAppClojurescript {}
+
+export class SimonSays extends Portfolio_SimonSays {}
+
 const HOSTNAME_TO_BINDING: Record<string, keyof Env> = {
   "www.chrisvouga.dev": "PORTFOLIO_PORTFOLIO",
   "pickflix.chrisvouga.dev": "PORTFOLIO_PICKFLIX",
