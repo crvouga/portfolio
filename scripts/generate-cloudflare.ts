@@ -38,9 +38,9 @@ if (process.env["GITHUB_ACTIONS"] === "true" && !ACCOUNT_ID) {
   process.exit(1);
 }
 
-/** Matches deployment-pipeline.yml: ghcr.io/${{ github.repository }}:<project-id>-latest */
-const GHCR_IMAGE_REPO = (
-  process.env["GITHUB_REPOSITORY"] ?? "crvouga/chrisvouga.dev"
+/** Matches workflows: docker.io/${DOCKER_USERNAME}/chrisvouga-dev:<project-id>-latest */
+const CONTAINER_IMAGE_REPO = (
+  process.env["CONTAINER_IMAGE_REPO"] ?? "docker.io/crvouga/chrisvouga-dev"
 ).toLowerCase();
 
 const ROOT = execSync("git rev-parse --show-toplevel", { encoding: "utf-8" }).trim();
@@ -136,7 +136,7 @@ function generateWranglerToml(): string {
     lines.push(`# ${t.id}`);
     lines.push(`[[containers]]`);
     lines.push(`class_name = "${containerClassName(t.id)}"`);
-    lines.push(`image = "ghcr.io/${GHCR_IMAGE_REPO}:${t.id}-latest"`);
+    lines.push(`image = "${CONTAINER_IMAGE_REPO}:${t.id}-latest"`);
     lines.push(`instance_type = "${instanceType(t.id)}"`);
     lines.push(`max_instances = 3`);
     lines.push("");

@@ -49,6 +49,17 @@ function printForbiddenHelp(accountId: string): void {
   );
 }
 
+function printImageRegistryNotConfiguredHelp(): void {
+  console.error("\nDeploy failed: IMAGE_REGISTRY_NOT_CONFIGURED");
+  console.error(
+    "Cloudflare Containers cannot pull one or more images because the registry credentials are not configured.",
+  );
+  console.error("\nYour images are hosted on Docker Hub, so configure docker.io for this Cloudflare account:");
+  console.error("- Run once (with an account-scoped token): `bunx wrangler containers registries configure docker.io`");
+  console.error("- Use Docker Hub username + password/token with pull access");
+  console.error("- Verify repository exists and is accessible: `docker.io/<username>/chrisvouga-dev`");
+}
+
 function main(): void {
   if (!existsSync(join(CF_DIR, "wrangler.toml"))) {
     console.error(`Missing ${CF_DIR}/wrangler.toml. Run 'bun run generate-cloudflare' first.`);
@@ -61,7 +72,9 @@ function main(): void {
     const result = runWranglerDeploy();
     if (result.status === 0) return;
 
-    if (result.output.includes("[ERROR] Forbidden") || result.output.includes("code: 10000")) {
+    if (result.output.includes("IMAGE_REGISTRY_NOT_CONFIGURED")) {
+      printImageRegistryNotConfiguredHelp();
+    } else if (result.output.includes("[ERROR] Forbidden") || result.output.includes("code: 10000")) {
       printForbiddenHelp(accountId);
     }
     process.exit(result.status ?? 1);

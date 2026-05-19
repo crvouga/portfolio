@@ -44,4 +44,4 @@ Routes use `custom_domain = true`. Zones `chrisvouga.dev` and `normalizer.app` m
 
 ## Images
 
-`ghcr.io/crvouga/chrisvouga.dev:<id>-latest` from `.github/workflows/deployment-pipeline.yml`.
+`docker.io/<DOCKER_USERNAME>/chrisvouga-dev:<id>-latest` from `.github/workflows/build-and-publish-images.yml`.

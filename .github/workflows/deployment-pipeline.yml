@@ -35,6 +35,7 @@ jobs:
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_SECRETS_STORE_ID: ${{ secrets.CLOUDFLARE_SECRETS_STORE_ID }}
+          CONTAINER_IMAGE_REPO: docker.io/${{ secrets.DOCKER_USERNAME }}/chrisvouga-dev
         run: bun run generate-cloudflare
 
       - name: Install Cloudflare worker dependencies
