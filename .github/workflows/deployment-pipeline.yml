@@ -21,7 +21,6 @@ permissions:
 jobs:
   typecheck:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
@@ -35,68 +34,182 @@ jobs:
       - name: Type check
         run: bun run typecheck
 
-  health-check-urls:
-    runs-on: ubuntu-latest
-    needs: typecheck
-    if: false # TODO: Enable this when the URLs are ready
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v5
-
-      - name: Set up Bun
-        uses: oven-sh/setup-bun@v2
-
-      - name: Install dependencies
-        run: bun install
-
-      - name: Check URLs
-        run: bun run scripts/health-check-urls.ts
-
-  test:
-    runs-on: ubuntu-latest
-    needs: typecheck
-    if: false # TODO: Enable this when the tests are ready
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v5
-
-      - name: Set up Bun
-        uses: oven-sh/setup-bun@v2
-
-      - name: Install dependencies
-        run: bun install
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Run tests
-        run: bun test
-
   build-and-push:
     runs-on: ubuntu-latest
-    needs: [test, health-check-urls]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && false # TODO: Enable this when the tests are ready
+    needs: typecheck
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - id: portfolio
+            checkout_repo: ""
+            checkout_path: "."
+            build_context: "."
+            dockerfile: "./Dockerfile"
+          - id: normalizer-app
+            checkout_repo: crvouga/normalizer.app
+            checkout_path: projects/normalizer.app
+            build_context: projects/normalizer.app
+            dockerfile: projects/normalizer.app/Dockerfile
+          - id: pickflix
+            checkout_repo: crvouga/pickflix-v1
+            checkout_path: projects/pickflix-v1
+            build_context: projects/pickflix-v1
+            dockerfile: projects/pickflix-v1/Dockerfile
+          - id: headless-combobox-docs
+            checkout_repo: crvouga/headless-combobox
+            checkout_path: projects/headless-combobox
+            build_context: projects/headless-combobox
+            dockerfile: projects/headless-combobox/Dockerfile
+          - id: headless-combobox-svelte-example
+            checkout_repo: crvouga/headless-combobox
+            checkout_path: projects/headless-combobox
+            build_context: projects/headless-combobox/example/svelte
+            dockerfile: projects/headless-combobox/example/svelte/Dockerfile
+          - id: moviefinder-app-rust
+            checkout_repo: crvouga/moviefinder.app-rust
+            checkout_path: projects/moviefinder.app-rust
+            build_context: projects/moviefinder.app-rust
+            dockerfile: projects/moviefinder.app-rust/Dockerfile
+          - id: moviefinder-app-go
+            checkout_repo: crvouga/moviefinder.app-go
+            checkout_path: projects/moviefinder.app-go
+            build_context: projects/moviefinder.app-go
+            dockerfile: projects/moviefinder.app-go/Dockerfile
+          - id: moviefinder-app-react
+            checkout_repo: crvouga/moviefinder.app-react
+            checkout_path: projects/moviefinder.app-react
+            build_context: projects/moviefinder.app-react
+            dockerfile: projects/moviefinder.app-react/Dockerfile
+          - id: moviefinder-app-clojurescript
+            checkout_repo: crvouga/moviefinder.app-clojurescript
+            checkout_path: projects/moviefinder.app-clojurescript
+            build_context: projects/moviefinder.app-clojurescript
+            dockerfile: projects/moviefinder.app-clojurescript/Dockerfile
+          - id: todo-app
+            checkout_repo: crvouga/todo-v1
+            checkout_path: projects/todo-v1
+            build_context: projects/todo-v1
+            dockerfile: projects/todo-v1/Dockerfile
+          - id: image-service
+            checkout_repo: crvouga/image-service
+            checkout_path: projects/image-service
+            build_context: projects/image-service
+            dockerfile: projects/image-service/Dockerfile
+          - id: connect-four
+            checkout_repo: crvouga/connect-four
+            checkout_path: projects/connect-four
+            build_context: projects/connect-four
+            dockerfile: projects/connect-four/Dockerfile
+          - id: screenshot-service
+            checkout_repo: crvouga/screenshot-service
+            checkout_path: projects/screenshot-service
+            build_context: projects/screenshot-service
+            dockerfile: projects/screenshot-service/Dockerfile
+          - id: anime-blog
+            checkout_repo: crvouga/anime
+            checkout_path: projects/anime
+            build_context: projects/anime
+            dockerfile: projects/anime/Dockerfile
+          - id: snake-game
+            checkout_repo: crvouga/snake
+            checkout_path: projects/snake
+            build_context: projects/snake
+            dockerfile: projects/snake/Dockerfile
+          - id: match-three
+            checkout_repo: crvouga/match-three
+            checkout_path: projects/match-three
+            build_context: projects/match-three
+            dockerfile: projects/match-three/Dockerfile
+          - id: simon-says
+            checkout_repo: crvouga/simon-says
+            checkout_path: projects/simon-says
+            build_context: projects/simon-says
+            dockerfile: projects/simon-says/Dockerfile
+          - id: quiz-maker
+            checkout_repo: crvouga/quiz-maker
+            checkout_path: projects/quiz-maker
+            build_context: projects/quiz-maker
+            dockerfile: projects/quiz-maker/Dockerfile
+          - id: cheese
+            checkout_repo: crvouga/cheese
+            checkout_path: projects/cheese
+            build_context: projects/cheese
+            dockerfile: projects/cheese/Dockerfile
+          - id: smart-dog-door
+            checkout_repo: crvouga/smart-dog-door-python
+            checkout_path: projects/smart-dog-door-python
+            build_context: projects/smart-dog-door-python
+            dockerfile: projects/smart-dog-door-python/Dockerfile
 
     steps:
-      - name: Checkout code
+      - name: Checkout portfolio (this repository)
+        if: ${{ matrix.id == 'portfolio' }}
         uses: actions/checkout@v5
 
+      - name: Checkout ${{ matrix.checkout_repo }}
+        if: ${{ matrix.id != 'portfolio' }}
+        uses: actions/checkout@v5
+        with:
+          repository: ${{ matrix.checkout_repo }}
+          path: ${{ matrix.checkout_path }}
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
+      - name: Build and push
+        id: build
+        env:
+          IMAGE: ghcr.io/${{ github.repository_owner }}/${{ matrix.id }}
+        run: |
+          IMAGE=$(echo "$IMAGE" | tr '[:upper:]' '[:lower:]')
+          docker buildx build \
+            --platform linux/amd64 \
+            --file "${{ matrix.dockerfile }}" \
+            --tag "${IMAGE}:latest" \
+            --tag "${IMAGE}:${{ github.sha }}" \
+            --push \
+            "${{ matrix.build_context }}"
+          echo "image=${IMAGE}" >> "$GITHUB_OUTPUT"
 
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: ./Dockerfile
-          push: true
-          tags: crvouga/portfolio:latest
-          cache-from: type=registry,ref=crvouga/portfolio:latest
-          cache-to: type=inline
+  summary:
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    if: always() && needs.build-and-push.result != 'skipped'
+    steps:
+      - name: Publish summary
+        env:
+          OWNER: ${{ github.repository_owner }}
+          SHA: ${{ github.sha }}
+          BUILD_RESULT: ${{ needs.build-and-push.result }}
+        run: |
+          OWNER=$(echo "$OWNER" | tr '[:upper:]' '[:lower:]')
+          SHORT_SHA="${SHA:0:7}"
+
+          {
+            echo "## Container Images"
+            echo ""
+            echo "| Image | Tags | Pull |"
+            echo "|-------|------|------|"
+
+            for id in \
+              portfolio normalizer-app pickflix \
+              headless-combobox-docs headless-combobox-svelte-example \
+              moviefinder-app-rust moviefinder-app-go moviefinder-app-react moviefinder-app-clojurescript \
+              todo-app image-service connect-four screenshot-service \
+              anime-blog snake-game match-three simon-says quiz-maker cheese smart-dog-door; do
+              image="ghcr.io/${OWNER}/${id}"
+              echo "| \`${id}\` | \`latest\` \`${SHORT_SHA}\` | \`docker pull ${image}:latest\` |"
+            done
+
+            echo ""
+            echo "**Build result:** \`${BUILD_RESULT}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
