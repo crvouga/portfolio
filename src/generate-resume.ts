@@ -5,8 +5,7 @@ import { TOPIC_TO_NAME } from "./content/topic";
 import { THEME } from "./ui/theme";
 import { chromium } from "playwright";
 import { mkdir } from "fs/promises";
-
-export const RESUME_FILENAME = "chris-vouga-resume.pdf";
+import { RESUME_FILENAME } from "./constants/resume";
 
 const formatDateRange = (yearStart: number, yearEnd: number | "Present"): string => {
   if (yearEnd === "Present") {
@@ -418,4 +417,6 @@ const generateResume = async () => {
   }
 };
 
-generateResume();
+if (import.meta.main) {
+  generateResume();
+}

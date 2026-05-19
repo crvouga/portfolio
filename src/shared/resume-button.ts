@@ -1,4 +1,4 @@
-import { RESUME_FILENAME } from "../generate-resume";
+import { RESUME_FILENAME } from "../constants/resume";
 import { text } from "../library/html/index";
 import type { View, ViewWithProps } from "../library/html/index";
 import { renderAttrs } from "../library/html/render";
