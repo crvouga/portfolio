@@ -141,7 +141,6 @@ export interface Env {
   readonly MOVIEFINDER_APP_REACT: DurableObjectNamespace<MoviefinderAppReact>;
   readonly MOVIEFINDER_APP_CLOJURESCRIPT: DurableObjectNamespace<MoviefinderAppClojurescript>;
   readonly SIMON_SAYS: DurableObjectNamespace<SimonSays>;
-  readonly CHEESE: DurableObjectNamespace<Cheese>;
   readonly PICKFLIX__DATABASE_URL: SecretsStoreSecret;
   readonly PICKFLIX__PORT: SecretsStoreSecret;
   readonly PICKFLIX__SECRET: SecretsStoreSecret;
@@ -318,11 +317,6 @@ export class SimonSays extends Container<Env> {
   sleepAfter = "5m";
 }
 
-export class Cheese extends Container<Env> {
-  defaultPort = 80;
-  sleepAfter = "5m";
-}
-
 const HOSTNAME_TO_BINDING: Record<string, keyof Env> = {
   "www.chrisvouga.dev": "PORTFOLIO",
   "pickflix.chrisvouga.dev": "PICKFLIX",
@@ -343,7 +337,6 @@ const HOSTNAME_TO_BINDING: Record<string, keyof Env> = {
   "moviefinder-app-react.chrisvouga.dev": "MOVIEFINDER_APP_REACT",
   "moviefinder-app-clojurescript.chrisvouga.dev": "MOVIEFINDER_APP_CLOJURESCRIPT",
   "simonsays.chrisvouga.dev": "SIMON_SAYS",
-  "cheese.chrisvouga.dev": "CHEESE",
 };
 
 type ContainerBindingKey = (typeof HOSTNAME_TO_BINDING)[keyof typeof HOSTNAME_TO_BINDING];

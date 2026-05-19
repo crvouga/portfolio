@@ -136,11 +136,6 @@ jobs:
             checkout_path: projects/quiz-maker
             build_context: projects/quiz-maker
             dockerfile: projects/quiz-maker/Dockerfile
-          - id: cheese
-            checkout_repo: crvouga/cheese
-            checkout_path: projects/cheese
-            build_context: projects/cheese
-            dockerfile: projects/cheese/Dockerfile
           - id: smart-dog-door
             checkout_repo: crvouga/smart-dog-door-python
             checkout_path: projects/smart-dog-door-python
@@ -429,7 +424,6 @@ jobs:
               print_row match-three                     matchthree.chrisvouga.dev
               print_row simon-says                      simonsays.chrisvouga.dev
               print_row quiz-maker                      quizmaker.chrisvouga.dev
-              print_row cheese                          cheese.chrisvouga.dev
               print_row smart-dog-door                  smartdogdoor.chrisvouga.dev
 
               echo ""
@@ -437,7 +431,7 @@ jobs:
               echo ""
               echo "Custom domains use \`custom_domain = true\` in Wrangler, which creates DNS records **inside Cloudflare**. Squarespace must delegate each apex domain to Cloudflare nameservers (not individual A/CNAME rows in Squarespace)."
               echo ""
-              echo "### 1. \`chrisvouga.dev\` (19 subdomains + \`www\`)"
+              echo "### 1. \`chrisvouga.dev\` (18 subdomains + \`www\`)"
               echo ""
               echo "**Cloudflare nameservers for this zone:**"
               fetch_cloudflare_nameservers "chrisvouga.dev"
@@ -463,7 +457,6 @@ jobs:
               echo "- \`moviefinder-app-react.chrisvouga.dev\`"
               echo "- \`moviefinder-app-clojurescript.chrisvouga.dev\`"
               echo "- \`simonsays.chrisvouga.dev\`"
-              echo "- \`cheese.chrisvouga.dev\`"
               echo ""
               echo "> Optional: add a Cloudflare redirect rule \`chrisvouga.dev\` → \`https://www.chrisvouga.dev\` if you want the bare apex to work."
               echo ""

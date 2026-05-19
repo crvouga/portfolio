@@ -138,13 +138,6 @@ image = "ghcr.io/crvouga/chrisvouga.dev:simon-says-latest"
 instance_type = "lite"
 max_instances = 3
 
-# cheese
-[[containers]]
-class_name = "Cheese"
-image = "ghcr.io/crvouga/chrisvouga.dev:cheese-latest"
-instance_type = "lite"
-max_instances = 3
-
 [[durable_objects.bindings]]
 name = "PORTFOLIO"
 class_name = "Portfolio"
@@ -220,10 +213,6 @@ class_name = "MoviefinderAppClojurescript"
 [[durable_objects.bindings]]
 name = "SIMON_SAYS"
 class_name = "SimonSays"
-
-[[durable_objects.bindings]]
-name = "CHEESE"
-class_name = "Cheese"
 
 # portfolio -> www.chrisvouga.dev
 [[routes]]
@@ -318,11 +307,6 @@ custom_domain = true
 # simon-says -> simonsays.chrisvouga.dev
 [[routes]]
 pattern = "simonsays.chrisvouga.dev"
-custom_domain = true
-
-# cheese -> cheese.chrisvouga.dev
-[[routes]]
-pattern = "cheese.chrisvouga.dev"
 custom_domain = true
 
 # Secrets Store (store_id = chrisvouga)
@@ -448,4 +432,4 @@ secret_name = "MOVIEFINDER_APP_CLOJURESCRIPT__TWILIO_SERVICE_SID"
 
 [[migrations]]
 tag = "v1"
-new_sqlite_classes = ["Portfolio", "Pickflix", "HeadlessComboboxSvelteExample", "HeadlessComboboxDocs", "TodoApp", "ImageService", "ConnectFour", "NormalizerApp", "ScreenshotService", "SmartDogDoor", "QuizMaker", "AnimeBlog", "SnakeGame", "MatchThree", "MoviefinderAppRust", "MoviefinderAppGo", "MoviefinderAppReact", "MoviefinderAppClojurescript", "SimonSays", "Cheese"]
+new_sqlite_classes = ["Portfolio", "Pickflix", "HeadlessComboboxSvelteExample", "HeadlessComboboxDocs", "TodoApp", "ImageService", "ConnectFour", "NormalizerApp", "ScreenshotService", "SmartDogDoor", "QuizMaker", "AnimeBlog", "SnakeGame", "MatchThree", "MoviefinderAppRust", "MoviefinderAppGo", "MoviefinderAppReact", "MoviefinderAppClojurescript", "SimonSays"]

@@ -633,9 +633,6 @@ export const PROJECTS: readonly Project[] = [
       "/cheese.png",
     ],
     topics: ["css", "typescript", "material-ui", "react", "firebase"],
-    githubRepo: "crvouga/cheese",
-    hostname: "cheese.chrisvouga.dev",
-    port: 80,
   },
 ];
 
