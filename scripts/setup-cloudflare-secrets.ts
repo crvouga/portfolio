@@ -119,6 +119,11 @@ function listSecretsByName(): Map<string, string> {
       `--page=${String(page)}`,
     ]);
     if (r.status !== 0) {
+      const combined = `${r.stdout}\n${r.stderr}`.toLowerCase();
+      // Wrangler currently returns a non-zero exit when the store is empty.
+      if (combined.includes("returned no secrets") || combined.includes("no secrets")) {
+        return byName;
+      }
       throw new Error(
         `wrangler secrets-store secret list failed (exit ${r.status ?? "?"}):\n${r.stderr || r.stdout}\n` +
           "Ensure the API token has Account > Secrets Store > Edit.",
