@@ -343,7 +343,7 @@ export const PROJECTS: readonly Project[] = [
     topics: ["typescript", "react", "tailwind", "bun", "postgres", "s3", "trpc", "zod"],
     githubRepo: "crvouga/normalizer.app",
     hostname: "normalizer.app",
-    port: 80,
+    port: 8080,
   },
   {
     id: "airr",
