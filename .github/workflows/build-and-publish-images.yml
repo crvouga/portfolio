@@ -1,0 +1,150 @@
+name: Build And Publish Images
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: build-and-publish-images-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - id: portfolio
+            checkout_repo: ""
+            checkout_path: "."
+            build_context: "."
+            dockerfile: "./Dockerfile"
+          - id: normalizer-app
+            checkout_repo: crvouga/normalizer.app
+            checkout_path: projects/normalizer.app
+            build_context: projects/normalizer.app
+            dockerfile: projects/normalizer.app/Dockerfile
+          - id: pickflix
+            checkout_repo: crvouga/pickflix-v1
+            checkout_path: projects/pickflix-v1
+            build_context: projects/pickflix-v1
+            dockerfile: projects/pickflix-v1/Dockerfile
+          - id: headless-combobox-docs
+            checkout_repo: crvouga/headless-combobox
+            checkout_path: projects/headless-combobox
+            build_context: projects/headless-combobox
+            dockerfile: projects/headless-combobox/Dockerfile
+          - id: headless-combobox-svelte-example
+            checkout_repo: crvouga/headless-combobox
+            checkout_path: projects/headless-combobox
+            build_context: projects/headless-combobox/example/svelte
+            dockerfile: projects/headless-combobox/example/svelte/Dockerfile
+          - id: moviefinder-app-rust
+            checkout_repo: crvouga/moviefinder.app-rust
+            checkout_path: projects/moviefinder.app-rust
+            build_context: projects/moviefinder.app-rust
+            dockerfile: projects/moviefinder.app-rust/Dockerfile
+          - id: moviefinder-app-go
+            checkout_repo: crvouga/moviefinder.app-go
+            checkout_path: projects/moviefinder.app-go
+            build_context: projects/moviefinder.app-go
+            dockerfile: projects/moviefinder.app-go/Dockerfile
+          - id: moviefinder-app-react
+            checkout_repo: crvouga/moviefinder.app-react
+            checkout_path: projects/moviefinder.app-react
+            build_context: projects/moviefinder.app-react
+            dockerfile: projects/moviefinder.app-react/Dockerfile
+          - id: moviefinder-app-clojurescript
+            checkout_repo: crvouga/moviefinder.app-clojurescript
+            checkout_path: projects/moviefinder.app-clojurescript
+            build_context: projects/moviefinder.app-clojurescript
+            dockerfile: projects/moviefinder.app-clojurescript/Dockerfile
+          - id: todo-app
+            checkout_repo: crvouga/todo-v1
+            checkout_path: projects/todo-v1
+            build_context: projects/todo-v1
+            dockerfile: projects/todo-v1/Dockerfile
+          - id: image-service
+            checkout_repo: crvouga/image-service
+            checkout_path: projects/image-service
+            build_context: projects/image-service
+            dockerfile: projects/image-service/Dockerfile
+          - id: connect-four
+            checkout_repo: crvouga/connect-four
+            checkout_path: projects/connect-four
+            build_context: projects/connect-four
+            dockerfile: projects/connect-four/Dockerfile
+          - id: screenshot-service
+            checkout_repo: crvouga/screenshot-service
+            checkout_path: projects/screenshot-service
+            build_context: projects/screenshot-service
+            dockerfile: projects/screenshot-service/Dockerfile
+          - id: anime-blog
+            checkout_repo: crvouga/anime
+            checkout_path: projects/anime
+            build_context: projects/anime
+            dockerfile: projects/anime/Dockerfile
+          - id: snake-game
+            checkout_repo: crvouga/snake
+            checkout_path: projects/snake
+            build_context: projects/snake
+            dockerfile: projects/snake/Dockerfile
+          - id: match-three
+            checkout_repo: crvouga/match-three
+            checkout_path: projects/match-three
+            build_context: projects/match-three
+            dockerfile: projects/match-three/Dockerfile
+          - id: simon-says
+            checkout_repo: crvouga/simon-says
+            checkout_path: projects/simon-says
+            build_context: projects/simon-says
+            dockerfile: projects/simon-says/Dockerfile
+          - id: quiz-maker
+            checkout_repo: crvouga/quiz-maker
+            checkout_path: projects/quiz-maker
+            build_context: projects/quiz-maker
+            dockerfile: projects/quiz-maker/Dockerfile
+          - id: smart-dog-door
+            checkout_repo: crvouga/smart-dog-door-python
+            checkout_path: projects/smart-dog-door-python
+            build_context: projects/smart-dog-door-python
+            dockerfile: projects/smart-dog-door-python/Dockerfile
+
+    steps:
+      - name: Checkout portfolio (this repository)
+        if: ${{ matrix.id == 'portfolio' }}
+        uses: actions/checkout@v5
+
+      - name: Checkout ${{ matrix.checkout_repo }}
+        if: ${{ matrix.id != 'portfolio' }}
+        uses: actions/checkout@v5
+        with:
+          repository: ${{ matrix.checkout_repo }}
+          path: ${{ matrix.checkout_path }}
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build and push
+        env:
+          GHCR_IMAGE: ghcr.io/${{ github.repository }}
+        run: |
+          GHCR_IMAGE=$(echo "$GHCR_IMAGE" | tr '[:upper:]' '[:lower:]')
+          docker buildx build \
+            --platform linux/amd64 \
+            --file "${{ matrix.dockerfile }}" \
+            --tag "${GHCR_IMAGE}:${{ matrix.id }}-latest" \
+            --tag "${GHCR_IMAGE}:${{ matrix.id }}-${{ github.sha }}" \
+            --push \
+            "${{ matrix.build_context }}"
