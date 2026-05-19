@@ -363,7 +363,7 @@ const HOSTNAME_TO_BINDING: Record<string, keyof Env> = {
   "todo.chrisvouga.dev": "PORTFOLIO_TODO_APP",
   "imageservice.chrisvouga.dev": "PORTFOLIO_IMAGE_SERVICE",
   "connectfour.chrisvouga.dev": "PORTFOLIO_CONNECT_FOUR",
-  "normalizer.app": "PORTFOLIO_NORMALIZER_APP",
+  "normalizer.chrisvouga.dev": "PORTFOLIO_NORMALIZER_APP",
   "screenshotservice.chrisvouga.dev": "PORTFOLIO_SCREENSHOT_SERVICE",
   "smartdogdoor.chrisvouga.dev": "PORTFOLIO_SMART_DOG_DOOR",
   "quizmaker.chrisvouga.dev": "PORTFOLIO_QUIZ_MAKER",

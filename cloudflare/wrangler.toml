@@ -249,9 +249,9 @@ custom_domain = true
 pattern = "connectfour.chrisvouga.dev"
 custom_domain = true
 
-# normalizer-app -> normalizer.app
+# normalizer-app -> normalizer.chrisvouga.dev
 [[routes]]
-pattern = "normalizer.app"
+pattern = "normalizer.chrisvouga.dev"
 custom_domain = true
 
 # screenshot-service -> screenshotservice.chrisvouga.dev
