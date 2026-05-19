@@ -18,7 +18,8 @@
     "preview": "docker build -t portfolio-app . && docker run -p 80:80 portfolio-app",
     "clone-projects": "bun run scripts/clone-projects.ts",
     "generate-cloudflare": "bun run scripts/generate-cloudflare.ts",
-    "setup-cloudflare-secrets": "bun run scripts/setup-cloudflare-secrets.ts"
+    "setup-cloudflare-secrets": "bun run scripts/setup-cloudflare-secrets.ts",
+    "deploy-cloudflare": "bun run scripts/deploy-cloudflare.ts"
   },
   "devDependencies": {
     "@types/bun": "latest",
