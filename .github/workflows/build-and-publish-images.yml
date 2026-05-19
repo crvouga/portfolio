@@ -23,6 +23,7 @@ jobs:
             checkout_path: "."
             build_context: "."
             dockerfile: "./Dockerfile"
+            platforms: linux/amd64,linux/arm64
           - id: normalizer-app
             checkout_repo: crvouga/normalizer.app
             checkout_path: projects/normalizer.app
@@ -139,10 +140,11 @@ jobs:
       - name: Build and push
         env:
           CONTAINER_IMAGE_REPO: docker.io/${{ secrets.DOCKER_USERNAME }}/chrisvouga-dev
+          CONTAINER_IMAGE_PLATFORMS: ${{ matrix.platforms || 'linux/amd64' }}
         run: |
           CONTAINER_IMAGE_REPO=$(echo "$CONTAINER_IMAGE_REPO" | tr '[:upper:]' '[:lower:]')
           docker buildx build \
-            --platform linux/amd64 \
+            --platform "${CONTAINER_IMAGE_PLATFORMS}" \
             --file "${{ matrix.dockerfile }}" \
             --tag "${CONTAINER_IMAGE_REPO}:${{ matrix.id }}-latest" \
             --tag "${CONTAINER_IMAGE_REPO}:${{ matrix.id }}-${{ github.sha }}" \
