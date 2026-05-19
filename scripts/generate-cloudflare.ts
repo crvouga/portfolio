@@ -3,17 +3,18 @@
  *
  * Run: bun run scripts/generate-cloudflare.ts
  */
-import { writeFileSync, mkdirSync } from "node:fs";
+import { writeFileSync, readFileSync, mkdirSync } from "node:fs";
 import { execSync } from "node:child_process";
 import { join } from "node:path";
 import { getDeployableProjects } from "../projects.js";
 import {
   DEFAULT_SECRETS_STORE_ID,
+  getGithubRepoSecretNames,
   secretBindingName,
 } from "./cloudflare-secret-names.js";
 
 const SECRETS_STORE_ID =
-  process.env.CLOUDFLARE_SECRETS_STORE_ID ?? DEFAULT_SECRETS_STORE_ID;
+  process.env["CLOUDFLARE_SECRETS_STORE_ID"] ?? DEFAULT_SECRETS_STORE_ID;
 
 const ROOT = execSync("git rev-parse --show-toplevel", { encoding: "utf-8" }).trim();
 const CF_DIR = join(ROOT, "cloudflare");
@@ -88,6 +89,21 @@ function secretEnvName(id: string, secret: string): string {
 
 function instanceType(id: string): "lite" | "basic" {
   return BASIC_INSTANCE_IDS.has(id) ? "basic" : "lite";
+}
+
+/** Non-secret env vars (not in GitHub); PORT/STAGE/NODE_ENV for container apps. */
+function staticContainerEnv(id: string, port: number): Record<string, string> {
+  if (id === "pickflix") {
+    return { NODE_ENV: "production" };
+  }
+  if (id.startsWith("moviefinder-app-")) {
+    const env: Record<string, string> = { PORT: String(port) };
+    if (id !== "moviefinder-app-clojurescript") {
+      env["STAGE"] = "production";
+    }
+    return env;
+  }
+  return {};
 }
 
 // ---------------------------------------------------------------------------
@@ -184,7 +200,7 @@ function generateIndexTs(): string {
     `      \`FATAL: Missing Secrets Store secrets for project "\${projectId}" in store "\${SECRETS_STORE_ID}": \${missing.join(", ")}. \` +`,
   );
   lines.push(
-    `        \`Provision with: bun run setup-cloudflare-secrets (env vars must be set).\`,`,
+    `        \`Add GitHub repo secret and redeploy (CI seeds Secrets Store from GitHub).\`,`,
   );
   lines.push(`    );`);
   lines.push(`    this.name = "MissingSecretsError";`);
@@ -192,10 +208,24 @@ function generateIndexTs(): string {
   lines.push(`}`);
   lines.push("");
 
-  const secretProjectIds = TARGETS.filter((t) => t.secrets.length > 0).map((t) => t.id);
-  if (secretProjectIds.length > 0) {
+  const envTargets = TARGETS.filter(
+    (t) => t.secrets.length > 0 || Object.keys(staticContainerEnv(t.id, t.port)).length > 0,
+  );
+  if (envTargets.length > 0) {
+    const withStatic = envTargets.filter(
+      (t) => Object.keys(staticContainerEnv(t.id, t.port)).length > 0,
+    );
+    if (withStatic.length > 0) {
+      lines.push(`const STATIC_ENV_SPECS = {`);
+      for (const t of withStatic) {
+        lines.push(`  "${t.id}": ${JSON.stringify(staticContainerEnv(t.id, t.port))},`);
+      }
+      lines.push(`} as const;`);
+      lines.push("");
+    }
+
     lines.push(`const SECRET_SPECS = {`);
-    for (const t of TARGETS) {
+    for (const t of envTargets) {
       if (t.secrets.length === 0) continue;
       lines.push(`  "${t.id}": [`);
       for (const s of t.secrets) {
@@ -206,14 +236,16 @@ function generateIndexTs(): string {
     }
     lines.push(`} as const;`);
     lines.push("");
-    lines.push(`type SecretProjectId = keyof typeof SECRET_SPECS;`);
+    lines.push(`type EnvProjectId = keyof typeof SECRET_SPECS;`);
     lines.push("");
     lines.push(`async function resolveContainerEnvVars(`);
-    lines.push(`  projectId: SecretProjectId,`);
+    lines.push(`  projectId: EnvProjectId,`);
     lines.push(`  env: Env,`);
     lines.push(`): Promise<Record<string, string>> {`);
     lines.push(`  const specs = SECRET_SPECS[projectId];`);
-    lines.push(`  const envVars: Record<string, string> = {};`);
+    lines.push(
+      `  const envVars: Record<string, string> = { ...(STATIC_ENV_SPECS[projectId as keyof typeof STATIC_ENV_SPECS] ?? {}) };`,
+    );
     lines.push(`  const missing: string[] = [];`);
     lines.push("");
     lines.push(`  for (const { containerKey, binding } of specs) {`);
@@ -244,7 +276,7 @@ function generateIndexTs(): string {
     lines.push(`}`);
     lines.push("");
     lines.push(`async function ensureContainerSecrets(`);
-    lines.push(`  projectId: SecretProjectId,`);
+    lines.push(`  projectId: EnvProjectId,`);
     lines.push(`  container: Container<Env>,`);
     lines.push(`  env: Env,`);
     lines.push(`): Promise<void> {`);
@@ -284,7 +316,8 @@ function generateIndexTs(): string {
   // Container classes
   for (const t of TARGETS) {
     const className = pascalCase(t.id);
-    const hasSecrets = t.secrets.length > 0;
+    const hasSecrets =
+      t.secrets.length > 0 || Object.keys(staticContainerEnv(t.id, t.port)).length > 0;
     lines.push(`export class ${className} extends Container<Env> {`);
     lines.push(`  defaultPort = ${t.port};`);
     lines.push(`  sleepAfter = "5m";`);
@@ -342,14 +375,47 @@ function generateIndexTs(): string {
 }
 
 // ---------------------------------------------------------------------------
+// deployment-pipeline.yml — GitHub secrets env block (source of truth)
+// ---------------------------------------------------------------------------
+
+const WORKFLOW_PATH = join(ROOT, ".github/workflows/deployment-pipeline.yml");
+const WORKFLOW_SECRETS_BEGIN = "          # BEGIN GENERATED: cloudflare-github-secrets-env";
+const WORKFLOW_SECRETS_END = "          # END GENERATED: cloudflare-github-secrets-env";
+
+function generateWorkflowSecretsEnvBlock(): string {
+  const lines = [WORKFLOW_SECRETS_BEGIN];
+  for (const name of getGithubRepoSecretNames()) {
+    lines.push(`          ${name}: \${{ secrets.${name} }}`);
+  }
+  lines.push(WORKFLOW_SECRETS_END);
+  return lines.join("\n");
+}
+
+function syncWorkflowSecretsEnv(): void {
+  const workflow = readFileSync(WORKFLOW_PATH, "utf-8");
+  const pattern = new RegExp(
+    `${WORKFLOW_SECRETS_BEGIN.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}[\\s\\S]*?${WORKFLOW_SECRETS_END.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`,
+  );
+  if (!pattern.test(workflow)) {
+    console.error(
+      `Missing markers in ${WORKFLOW_PATH}. Add:\n${WORKFLOW_SECRETS_BEGIN}\n${WORKFLOW_SECRETS_END}`,
+    );
+    process.exit(1);
+  }
+  writeFileSync(WORKFLOW_PATH, workflow.replace(pattern, generateWorkflowSecretsEnvBlock()));
+}
+
+// ---------------------------------------------------------------------------
 // Write files
 // ---------------------------------------------------------------------------
 
 writeFileSync(join(CF_DIR, "wrangler.toml"), generateWranglerToml());
 writeFileSync(join(SRC_DIR, "index.ts"), generateIndexTs());
+syncWorkflowSecretsEnv();
 
 console.log(`Generated cloudflare/wrangler.toml`);
 console.log(`Generated cloudflare/src/index.ts`);
+console.log(`Synced GitHub secrets env in .github/workflows/deployment-pipeline.yml`);
 console.log(`Secrets Store ID: ${SECRETS_STORE_ID}`);
 console.log(`Targets: ${TARGETS.length}`);
 for (const t of TARGETS) {

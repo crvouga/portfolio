@@ -327,19 +327,14 @@ custom_domain = true
 
 # Secrets Store (store_id = chrisvouga)
 [[secrets_store_secrets]]
-binding = "PICKFLIX__NODE_ENV"
+binding = "PICKFLIX__DATABASE_URL"
 store_id = "chrisvouga"
-secret_name = "PICKFLIX__NODE_ENV"
+secret_name = "PICKFLIX__DATABASE_URL"
 
 [[secrets_store_secrets]]
 binding = "PICKFLIX__PORT"
 store_id = "chrisvouga"
 secret_name = "PICKFLIX__PORT"
-
-[[secrets_store_secrets]]
-binding = "PICKFLIX__DATABASE_URL"
-store_id = "chrisvouga"
-secret_name = "PICKFLIX__DATABASE_URL"
 
 [[secrets_store_secrets]]
 binding = "PICKFLIX__SECRET"
@@ -372,16 +367,6 @@ store_id = "chrisvouga"
 secret_name = "PICKFLIX__TMDB_API_READ_ACCESS_TOKEN"
 
 [[secrets_store_secrets]]
-binding = "MOVIEFINDER_APP_RUST__STAGE"
-store_id = "chrisvouga"
-secret_name = "MOVIEFINDER_APP_RUST__STAGE"
-
-[[secrets_store_secrets]]
-binding = "MOVIEFINDER_APP_RUST__PORT"
-store_id = "chrisvouga"
-secret_name = "MOVIEFINDER_APP_RUST__PORT"
-
-[[secrets_store_secrets]]
 binding = "MOVIEFINDER_APP_RUST__TMDB_API_READ_ACCESS_TOKEN"
 store_id = "chrisvouga"
 secret_name = "MOVIEFINDER_APP_RUST__TMDB_API_READ_ACCESS_TOKEN"
@@ -400,16 +385,6 @@ secret_name = "MOVIEFINDER_APP_RUST__TWILIO_AUTH_TOKEN"
 binding = "MOVIEFINDER_APP_RUST__TWILIO_SERVICE_SID"
 store_id = "chrisvouga"
 secret_name = "MOVIEFINDER_APP_RUST__TWILIO_SERVICE_SID"
-
-[[secrets_store_secrets]]
-binding = "MOVIEFINDER_APP_GO__STAGE"
-store_id = "chrisvouga"
-secret_name = "MOVIEFINDER_APP_GO__STAGE"
-
-[[secrets_store_secrets]]
-binding = "MOVIEFINDER_APP_GO__PORT"
-store_id = "chrisvouga"
-secret_name = "MOVIEFINDER_APP_GO__PORT"
 
 [[secrets_store_secrets]]
 binding = "MOVIEFINDER_APP_GO__TMDB_API_READ_ACCESS_TOKEN"
@@ -432,16 +407,6 @@ store_id = "chrisvouga"
 secret_name = "MOVIEFINDER_APP_GO__TWILIO_SERVICE_SID"
 
 [[secrets_store_secrets]]
-binding = "MOVIEFINDER_APP_REACT__STAGE"
-store_id = "chrisvouga"
-secret_name = "MOVIEFINDER_APP_REACT__STAGE"
-
-[[secrets_store_secrets]]
-binding = "MOVIEFINDER_APP_REACT__PORT"
-store_id = "chrisvouga"
-secret_name = "MOVIEFINDER_APP_REACT__PORT"
-
-[[secrets_store_secrets]]
 binding = "MOVIEFINDER_APP_REACT__TMDB_API_READ_ACCESS_TOKEN"
 store_id = "chrisvouga"
 secret_name = "MOVIEFINDER_APP_REACT__TMDB_API_READ_ACCESS_TOKEN"
@@ -460,11 +425,6 @@ secret_name = "MOVIEFINDER_APP_REACT__TWILIO_AUTH_TOKEN"
 binding = "MOVIEFINDER_APP_REACT__TWILIO_SERVICE_SID"
 store_id = "chrisvouga"
 secret_name = "MOVIEFINDER_APP_REACT__TWILIO_SERVICE_SID"
-
-[[secrets_store_secrets]]
-binding = "MOVIEFINDER_APP_CLOJURESCRIPT__PORT"
-store_id = "chrisvouga"
-secret_name = "MOVIEFINDER_APP_CLOJURESCRIPT__PORT"
 
 [[secrets_store_secrets]]
 binding = "MOVIEFINDER_APP_CLOJURESCRIPT__TMDB_API_READ_ACCESS_TOKEN"

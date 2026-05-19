@@ -13,32 +13,31 @@ All configuration is generated from [`../projects.ts`](../projects.ts) -- do not
 ## Workflow
 
 ```bash
-# Regenerate config from projects.ts
-cd cloudflare
-bun run generate
-
-# One-time: provision Secrets Store secrets (fails if any env var is missing)
-# Requires CLOUDFLARE_SECRETS_STORE_ID (default: chrisvouga)
-set -a && source ../.env && set +a
-bun run ../scripts/setup-cloudflare-secrets.ts
-
-# Deploy
-bun run deploy
+bun run generate-cloudflare
+cd cloudflare && bun run deploy
 ```
 
 ## Secrets
 
-All project secrets live in [Cloudflare Secrets Store](https://developers.cloudflare.com/secrets-store/) (not per-Worker `wrangler secret put`). Bindings are generated as `[[secrets_store_secrets]]` in `wrangler.toml`.
+**GitHub repo secrets are the source of truth.** CI seeds Cloudflare Secrets Store before each deploy.
 
-- Store ID: set `CLOUDFLARE_SECRETS_STORE_ID` when generating/deploying (default: `chrisvouga`)
-- Secret names match bindings: `PICKFLIX__DATABASE_URL`, etc.
-- Missing or empty secrets return **503** with a loud error message (no silent empty strings)
-- Setup script **exits non-zero** if any required env var is missing
+| GitHub secret | Used by |
+|---------------|---------|
+| `CLOUDFLARE_API_TOKEN` | Deploy + seed (workflow only) |
+| `CLOUDFLARE_ACCOUNT_ID` | Deploy + seed (workflow only) |
+| `TMDB_API_READ_ACCESS_TOKEN` | pickflix, all moviefinder apps |
+| `TWILIO_ACCOUNT_SID` | moviefinder apps |
+| `TWILIO_AUTH_TOKEN` | moviefinder apps |
+| `TWILIO_SERVICE_SID` | moviefinder apps |
+
+Each value is copied into per-project Secrets Store bindings (e.g. `MOVIEFINDER_APP_GO__TWILIO_AUTH_TOKEN`). `PORT`, `STAGE`, and pickflix `NODE_ENV` are set as plain container env vars, not GitHub secrets.
+
+Secrets Store ID defaults to `chrisvouga` (override locally with `CLOUDFLARE_SECRETS_STORE_ID`).
 
 ## DNS
 
-Routes are configured with `custom_domain = true` which auto-creates DNS records for hostnames in `chrisvouga.dev` and `normalizer.app`. Both zones must be on Cloudflare nameservers.
+Routes use `custom_domain = true`. Zones `chrisvouga.dev` and `normalizer.app` must use Cloudflare nameservers.
 
-## Image source
+## Images
 
-Containers pull from `ghcr.io/crvouga/<id>:latest`, built by `.github/workflows/deployment-pipeline.yml`.
+`ghcr.io/crvouga/<id>:latest` from `.github/workflows/deployment-pipeline.yml`.

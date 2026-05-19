@@ -196,13 +196,24 @@ jobs:
         run: bun install
 
       - name: Generate Cloudflare config
-        env:
-          CLOUDFLARE_SECRETS_STORE_ID: ${{ secrets.CLOUDFLARE_SECRETS_STORE_ID }}
         run: bun run generate-cloudflare
 
       - name: Install Cloudflare worker dependencies
         working-directory: cloudflare
         run: bun install
+
+      # GitHub repo secrets are the source of truth; seed Cloudflare Secrets Store before deploy.
+      - name: Seed Cloudflare Secrets Store from GitHub secrets
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          # BEGIN GENERATED: cloudflare-github-secrets-env
+          TMDB_API_READ_ACCESS_TOKEN: ${{ secrets.TMDB_API_READ_ACCESS_TOKEN }}
+          TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
+          TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
+          TWILIO_SERVICE_SID: ${{ secrets.TWILIO_SERVICE_SID }}
+          # END GENERATED: cloudflare-github-secrets-env
+        run: bun run setup-cloudflare-secrets
 
       - name: Deploy to Cloudflare
         working-directory: cloudflare
@@ -356,7 +367,7 @@ jobs:
               echo "1. Identify the root cause from the logs above."
               echo "2. Propose a minimal fix (file paths and exact edits)."
               echo "3. Note if the failure is in an external repo checked out in the matrix (see workflow matrix.checkout_repo)."
-              echo "4. Call out missing secrets or infra (CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, GHCR permissions) if relevant."
+              echo "4. Call out missing secrets or infra (GitHub repo secrets are source of truth — binding names like PICKFLIX__DATABASE_URL; CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, GHCR permissions) if relevant."
             } > "$prompt_file"
 
             echo "<details open>"

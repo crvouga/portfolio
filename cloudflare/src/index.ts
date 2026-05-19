@@ -11,17 +11,24 @@ export class MissingSecretsError extends Error {
   ) {
     super(
       `FATAL: Missing Secrets Store secrets for project "${projectId}" in store "${SECRETS_STORE_ID}": ${missing.join(", ")}. ` +
-        `Provision with: bun run setup-cloudflare-secrets (env vars must be set).`,
+        `Add GitHub repo secret and redeploy (CI seeds Secrets Store from GitHub).`,
     );
     this.name = "MissingSecretsError";
   }
 }
 
+const STATIC_ENV_SPECS = {
+  "pickflix": {"NODE_ENV":"production"},
+  "moviefinder-app-rust": {"PORT":"80","STAGE":"production"},
+  "moviefinder-app-go": {"PORT":"80","STAGE":"production"},
+  "moviefinder-app-react": {"PORT":"80","STAGE":"production"},
+  "moviefinder-app-clojurescript": {"PORT":"8888"},
+} as const;
+
 const SECRET_SPECS = {
   "pickflix": [
-    { containerKey: "NODE_ENV", binding: "PICKFLIX__NODE_ENV" },
-    { containerKey: "PORT", binding: "PICKFLIX__PORT" },
     { containerKey: "DATABASE_URL", binding: "PICKFLIX__DATABASE_URL" },
+    { containerKey: "PORT", binding: "PICKFLIX__PORT" },
     { containerKey: "SECRET", binding: "PICKFLIX__SECRET" },
     { containerKey: "SEND_GRID_API_KEY", binding: "PICKFLIX__SEND_GRID_API_KEY" },
     { containerKey: "SEND_GRID_REGISTERED_EMAIL_ADDRESS", binding: "PICKFLIX__SEND_GRID_REGISTERED_EMAIL_ADDRESS" },
@@ -30,31 +37,24 @@ const SECRET_SPECS = {
     { containerKey: "TMDB_API_READ_ACCESS_TOKEN", binding: "PICKFLIX__TMDB_API_READ_ACCESS_TOKEN" },
   ],
   "moviefinder-app-rust": [
-    { containerKey: "STAGE", binding: "MOVIEFINDER_APP_RUST__STAGE" },
-    { containerKey: "PORT", binding: "MOVIEFINDER_APP_RUST__PORT" },
     { containerKey: "TMDB_API_READ_ACCESS_TOKEN", binding: "MOVIEFINDER_APP_RUST__TMDB_API_READ_ACCESS_TOKEN" },
     { containerKey: "TWILIO_ACCOUNT_SID", binding: "MOVIEFINDER_APP_RUST__TWILIO_ACCOUNT_SID" },
     { containerKey: "TWILIO_AUTH_TOKEN", binding: "MOVIEFINDER_APP_RUST__TWILIO_AUTH_TOKEN" },
     { containerKey: "TWILIO_SERVICE_SID", binding: "MOVIEFINDER_APP_RUST__TWILIO_SERVICE_SID" },
   ],
   "moviefinder-app-go": [
-    { containerKey: "STAGE", binding: "MOVIEFINDER_APP_GO__STAGE" },
-    { containerKey: "PORT", binding: "MOVIEFINDER_APP_GO__PORT" },
     { containerKey: "TMDB_API_READ_ACCESS_TOKEN", binding: "MOVIEFINDER_APP_GO__TMDB_API_READ_ACCESS_TOKEN" },
     { containerKey: "TWILIO_ACCOUNT_SID", binding: "MOVIEFINDER_APP_GO__TWILIO_ACCOUNT_SID" },
     { containerKey: "TWILIO_AUTH_TOKEN", binding: "MOVIEFINDER_APP_GO__TWILIO_AUTH_TOKEN" },
     { containerKey: "TWILIO_SERVICE_SID", binding: "MOVIEFINDER_APP_GO__TWILIO_SERVICE_SID" },
   ],
   "moviefinder-app-react": [
-    { containerKey: "STAGE", binding: "MOVIEFINDER_APP_REACT__STAGE" },
-    { containerKey: "PORT", binding: "MOVIEFINDER_APP_REACT__PORT" },
     { containerKey: "TMDB_API_READ_ACCESS_TOKEN", binding: "MOVIEFINDER_APP_REACT__TMDB_API_READ_ACCESS_TOKEN" },
     { containerKey: "TWILIO_ACCOUNT_SID", binding: "MOVIEFINDER_APP_REACT__TWILIO_ACCOUNT_SID" },
     { containerKey: "TWILIO_AUTH_TOKEN", binding: "MOVIEFINDER_APP_REACT__TWILIO_AUTH_TOKEN" },
     { containerKey: "TWILIO_SERVICE_SID", binding: "MOVIEFINDER_APP_REACT__TWILIO_SERVICE_SID" },
   ],
   "moviefinder-app-clojurescript": [
-    { containerKey: "PORT", binding: "MOVIEFINDER_APP_CLOJURESCRIPT__PORT" },
     { containerKey: "TMDB_API_READ_ACCESS_TOKEN", binding: "MOVIEFINDER_APP_CLOJURESCRIPT__TMDB_API_READ_ACCESS_TOKEN" },
     { containerKey: "TWILIO_ACCOUNT_SID", binding: "MOVIEFINDER_APP_CLOJURESCRIPT__TWILIO_ACCOUNT_SID" },
     { containerKey: "TWILIO_AUTH_TOKEN", binding: "MOVIEFINDER_APP_CLOJURESCRIPT__TWILIO_AUTH_TOKEN" },
@@ -62,14 +62,14 @@ const SECRET_SPECS = {
   ],
 } as const;
 
-type SecretProjectId = keyof typeof SECRET_SPECS;
+type EnvProjectId = keyof typeof SECRET_SPECS;
 
 async function resolveContainerEnvVars(
-  projectId: SecretProjectId,
+  projectId: EnvProjectId,
   env: Env,
 ): Promise<Record<string, string>> {
   const specs = SECRET_SPECS[projectId];
-  const envVars: Record<string, string> = {};
+  const envVars: Record<string, string> = { ...(STATIC_ENV_SPECS[projectId as keyof typeof STATIC_ENV_SPECS] ?? {}) };
   const missing: string[] = [];
 
   for (const { containerKey, binding } of specs) {
@@ -100,7 +100,7 @@ async function resolveContainerEnvVars(
 }
 
 async function ensureContainerSecrets(
-  projectId: SecretProjectId,
+  projectId: EnvProjectId,
   container: Container<Env>,
   env: Env,
 ): Promise<void> {
@@ -142,34 +142,26 @@ export interface Env {
   readonly MOVIEFINDER_APP_CLOJURESCRIPT: DurableObjectNamespace<MoviefinderAppClojurescript>;
   readonly SIMON_SAYS: DurableObjectNamespace<SimonSays>;
   readonly CHEESE: DurableObjectNamespace<Cheese>;
-  readonly PICKFLIX__NODE_ENV: SecretsStoreSecret;
-  readonly PICKFLIX__PORT: SecretsStoreSecret;
   readonly PICKFLIX__DATABASE_URL: SecretsStoreSecret;
+  readonly PICKFLIX__PORT: SecretsStoreSecret;
   readonly PICKFLIX__SECRET: SecretsStoreSecret;
   readonly PICKFLIX__SEND_GRID_API_KEY: SecretsStoreSecret;
   readonly PICKFLIX__SEND_GRID_REGISTERED_EMAIL_ADDRESS: SecretsStoreSecret;
   readonly PICKFLIX__SESSION_COOKIE_SECRET: SecretsStoreSecret;
   readonly PICKFLIX__YOUTUBE_API_KEY: SecretsStoreSecret;
   readonly PICKFLIX__TMDB_API_READ_ACCESS_TOKEN: SecretsStoreSecret;
-  readonly MOVIEFINDER_APP_RUST__STAGE: SecretsStoreSecret;
-  readonly MOVIEFINDER_APP_RUST__PORT: SecretsStoreSecret;
   readonly MOVIEFINDER_APP_RUST__TMDB_API_READ_ACCESS_TOKEN: SecretsStoreSecret;
   readonly MOVIEFINDER_APP_RUST__TWILIO_ACCOUNT_SID: SecretsStoreSecret;
   readonly MOVIEFINDER_APP_RUST__TWILIO_AUTH_TOKEN: SecretsStoreSecret;
   readonly MOVIEFINDER_APP_RUST__TWILIO_SERVICE_SID: SecretsStoreSecret;
-  readonly MOVIEFINDER_APP_GO__STAGE: SecretsStoreSecret;
-  readonly MOVIEFINDER_APP_GO__PORT: SecretsStoreSecret;
   readonly MOVIEFINDER_APP_GO__TMDB_API_READ_ACCESS_TOKEN: SecretsStoreSecret;
   readonly MOVIEFINDER_APP_GO__TWILIO_ACCOUNT_SID: SecretsStoreSecret;
   readonly MOVIEFINDER_APP_GO__TWILIO_AUTH_TOKEN: SecretsStoreSecret;
   readonly MOVIEFINDER_APP_GO__TWILIO_SERVICE_SID: SecretsStoreSecret;
-  readonly MOVIEFINDER_APP_REACT__STAGE: SecretsStoreSecret;
-  readonly MOVIEFINDER_APP_REACT__PORT: SecretsStoreSecret;
   readonly MOVIEFINDER_APP_REACT__TMDB_API_READ_ACCESS_TOKEN: SecretsStoreSecret;
   readonly MOVIEFINDER_APP_REACT__TWILIO_ACCOUNT_SID: SecretsStoreSecret;
   readonly MOVIEFINDER_APP_REACT__TWILIO_AUTH_TOKEN: SecretsStoreSecret;
   readonly MOVIEFINDER_APP_REACT__TWILIO_SERVICE_SID: SecretsStoreSecret;
-  readonly MOVIEFINDER_APP_CLOJURESCRIPT__PORT: SecretsStoreSecret;
   readonly MOVIEFINDER_APP_CLOJURESCRIPT__TMDB_API_READ_ACCESS_TOKEN: SecretsStoreSecret;
   readonly MOVIEFINDER_APP_CLOJURESCRIPT__TWILIO_ACCOUNT_SID: SecretsStoreSecret;
   readonly MOVIEFINDER_APP_CLOJURESCRIPT__TWILIO_AUTH_TOKEN: SecretsStoreSecret;

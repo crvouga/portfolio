@@ -206,9 +206,14 @@ export const PROJECTS: readonly Project[] = [
     hostname: "pickflix.chrisvouga.dev",
     port: 3000,
     secrets: [
-      "NODE_ENV", "PORT", "DATABASE_URL", "SECRET",
-      "SEND_GRID_API_KEY", "SEND_GRID_REGISTERED_EMAIL_ADDRESS",
-      "SESSION_COOKIE_SECRET", "YOUTUBE_API_KEY", "TMDB_API_READ_ACCESS_TOKEN",
+      "DATABASE_URL",
+      "PORT",
+      "SECRET",
+      "SEND_GRID_API_KEY",
+      "SEND_GRID_REGISTERED_EMAIL_ADDRESS",
+      "SESSION_COOKIE_SECRET",
+      "YOUTUBE_API_KEY",
+      "TMDB_API_READ_ACCESS_TOKEN",
     ],
   },
   {
@@ -521,7 +526,12 @@ export const PROJECTS: readonly Project[] = [
     githubRepo: "crvouga/moviefinder.app-rust",
     hostname: "moviefinder-app-rust.chrisvouga.dev",
     port: 80,
-    secrets: ["STAGE", "PORT", "TMDB_API_READ_ACCESS_TOKEN", "TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN", "TWILIO_SERVICE_SID"],
+    secrets: [
+      "TMDB_API_READ_ACCESS_TOKEN",
+      "TWILIO_ACCOUNT_SID",
+      "TWILIO_AUTH_TOKEN",
+      "TWILIO_SERVICE_SID",
+    ],
   },
   {
     id: "moviefinder-app-go",
@@ -538,7 +548,12 @@ export const PROJECTS: readonly Project[] = [
     githubRepo: "crvouga/moviefinder.app-go",
     hostname: "moviefinder-app-go.chrisvouga.dev",
     port: 80,
-    secrets: ["STAGE", "PORT", "TMDB_API_READ_ACCESS_TOKEN", "TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN", "TWILIO_SERVICE_SID"],
+    secrets: [
+      "TMDB_API_READ_ACCESS_TOKEN",
+      "TWILIO_ACCOUNT_SID",
+      "TWILIO_AUTH_TOKEN",
+      "TWILIO_SERVICE_SID",
+    ],
   },
   {
     id: "moviefinder-app-react",
@@ -555,7 +570,12 @@ export const PROJECTS: readonly Project[] = [
     githubRepo: "crvouga/moviefinder.app-react",
     hostname: "moviefinder-app-react.chrisvouga.dev",
     port: 80,
-    secrets: ["STAGE", "PORT", "TMDB_API_READ_ACCESS_TOKEN", "TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN", "TWILIO_SERVICE_SID"],
+    secrets: [
+      "TMDB_API_READ_ACCESS_TOKEN",
+      "TWILIO_ACCOUNT_SID",
+      "TWILIO_AUTH_TOKEN",
+      "TWILIO_SERVICE_SID",
+    ],
   },
   {
     id: "moviefinder-app-clojurescript",
@@ -572,7 +592,12 @@ export const PROJECTS: readonly Project[] = [
     githubRepo: "crvouga/moviefinder.app-clojurescript",
     hostname: "moviefinder-app-clojurescript.chrisvouga.dev",
     port: 8888,
-    secrets: ["PORT", "TMDB_API_READ_ACCESS_TOKEN", "TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN", "TWILIO_SERVICE_SID"],
+    secrets: [
+      "TMDB_API_READ_ACCESS_TOKEN",
+      "TWILIO_ACCOUNT_SID",
+      "TWILIO_AUTH_TOKEN",
+      "TWILIO_SERVICE_SID",
+    ],
   },
   {
     id: "simon-says",
