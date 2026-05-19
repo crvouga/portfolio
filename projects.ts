@@ -228,7 +228,7 @@ export const PROJECTS: readonly Project[] = [
     topics: ["bootstrap", "drupal", "javascript", "react", "css", "php"],
   },
   {
-    id: "headless-combobox",
+    id: "headless-combobox-svelte-example",
     title: "headless-combobox",
     setting: "side",
     deployment: { t: "public", url: "https://svelte.headlesscombobox.chrisvouga.dev" },

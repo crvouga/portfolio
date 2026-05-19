@@ -17,6 +17,7 @@ permissions:
   contents: read
   packages: write
   pull-requests: write
+  actions: read
 
 jobs:
   typecheck:
@@ -180,36 +181,308 @@ jobs:
             "${{ matrix.build_context }}"
           echo "image=${IMAGE}" >> "$GITHUB_OUTPUT"
 
-  summary:
+  deploy-cloudflare:
     runs-on: ubuntu-latest
     needs: build-and-push
-    if: always() && needs.build-and-push.result != 'skipped'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install root dependencies
+        run: bun install
+
+      - name: Generate Cloudflare config
+        env:
+          CLOUDFLARE_SECRETS_STORE_ID: ${{ secrets.CLOUDFLARE_SECRETS_STORE_ID }}
+        run: bun run generate-cloudflare
+
+      - name: Install Cloudflare worker dependencies
+        working-directory: cloudflare
+        run: bun install
+
+      - name: Deploy to Cloudflare
+        working-directory: cloudflare
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: bunx wrangler deploy
+
+  summary:
+    runs-on: ubuntu-latest
+    needs: [typecheck, build-and-push, deploy-cloudflare]
+    if: always()
     steps:
       - name: Publish summary
         env:
+          GH_TOKEN: ${{ github.token }}
           OWNER: ${{ github.repository_owner }}
+          REPO: ${{ github.repository }}
           SHA: ${{ github.sha }}
+          REF: ${{ github.ref }}
+          EVENT: ${{ github.event_name }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          TYPECHECK_RESULT: ${{ needs.typecheck.result }}
           BUILD_RESULT: ${{ needs.build-and-push.result }}
+          DEPLOY_RESULT: ${{ needs.deploy-cloudflare.result }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           OWNER=$(echo "$OWNER" | tr '[:upper:]' '[:lower:]')
           SHORT_SHA="${SHA:0:7}"
+          IS_MAIN_PUSH=false
+          if [ "$EVENT" = "push" ] && [ "$REF" = "refs/heads/main" ]; then
+            IS_MAIN_PUSH=true
+          fi
+
+          pipeline_failed=false
+          for result in "$TYPECHECK_RESULT" "$BUILD_RESULT" "$DEPLOY_RESULT"; do
+            case "$result" in
+              failure|cancelled) pipeline_failed=true ;;
+            esac
+          done
+
+          fetch_cloudflare_nameservers() {
+            zone="$1"
+            if [ -z "${CLOUDFLARE_API_TOKEN:-}" ]; then
+              echo "_CLOUDFLARE_API_TOKEN not set — add repo secret to show nameservers here_"
+              return
+            fi
+            account_args=()
+            if [ -n "${CLOUDFLARE_ACCOUNT_ID:-}" ]; then
+              account_args=(--data-urlencode "account.id=${CLOUDFLARE_ACCOUNT_ID}")
+            fi
+            response=$(curl -fsS -G "https://api.cloudflare.com/client/v4/zones" \
+              "${account_args[@]}" \
+              --data-urlencode "name=${zone}" \
+              -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+              -H "Content-Type: application/json" 2>/dev/null || true)
+            if [ -z "$response" ]; then
+              echo "_API request failed_"
+              return
+            fi
+            status=$(echo "$response" | jq -r '.success')
+            if [ "$status" != "true" ]; then
+              echo "_$(echo "$response" | jq -r '.errors[0].message // "zone lookup failed"')_"
+              return
+            fi
+            count=$(echo "$response" | jq -r '.result | length')
+            if [ "$count" = "0" ]; then
+              echo "_Zone \`${zone}\` not found — add it in [Cloudflare DNS](https://dash.cloudflare.com/) first_"
+              return
+            fi
+            echo "$response" | jq -r '.result[0].name_servers[]' | while read -r ns; do
+              echo "- \`${ns}\`"
+            done
+          }
+
+          write_failure_diagnostics() {
+            echo "## Pipeline status"
+            echo ""
+            echo "| Job | Result |"
+            echo "|-----|--------|"
+            echo "| typecheck | \`${TYPECHECK_RESULT}\` |"
+            echo "| build-and-push | \`${BUILD_RESULT}\` |"
+            echo "| deploy-cloudflare | \`${DEPLOY_RESULT}\` |"
+            echo ""
+            echo "**Workflow run:** [${RUN_ID}](${RUN_URL}) · commit \`${SHORT_SHA}\` · \`${EVENT}\` on \`${REF#refs/heads/}\`"
+            echo ""
+
+            failed_jobs_md=$(gh api "repos/${REPO}/actions/runs/${RUN_ID}/jobs" --paginate \
+              --jq '[.jobs[] | select(.conclusion == "failure") | {name, html_url, steps: [.steps[] | select(.conclusion == "failure") | .name]}] | .[] | "- **\(.name)** — [view logs](\(.html_url))" + (if (.steps | length) > 0 then "\n  - Failed steps: " + ([.steps[] | "`\(.)`"] | join(", ")) else "" end)' \
+              2>/dev/null || echo "- _Could not fetch failed jobs from GitHub API_")
+
+            failed_job_count=$(printf '%s\n' "$failed_jobs_md" | grep -c '^\- \*\*' || true)
+
+            logs_file=$(mktemp)
+            if ! gh run view "$RUN_ID" --repo "$REPO" --log-failed > "$logs_file" 2>/dev/null; then
+              echo "_Could not download failed-step logs (run may still be finalizing)._ " > "$logs_file"
+            fi
+            # Keep prompt size reasonable for LLMs and GitHub summary limits
+            tail -n 400 "$logs_file" > "${logs_file}.tail"
+            mv "${logs_file}.tail" "$logs_file"
+            if [ "$(wc -c < "$logs_file" | tr -d ' ')" -gt 24000 ]; then
+              head -c 24000 "$logs_file" > "${logs_file}.trim"
+              printf '\n\n... [logs truncated — open workflow run for full output]\n' >> "${logs_file}.trim"
+              mv "${logs_file}.trim" "$logs_file"
+            fi
+
+            echo "<details>"
+            echo "<summary><strong>Failed jobs</strong> (${failed_job_count}) — click to expand</summary>"
+            echo ""
+            echo "$failed_jobs_md"
+            echo ""
+            echo "</details>"
+            echo ""
+
+            echo "<details>"
+            echo "<summary><strong>Failed step logs</strong> (truncated) — click to expand, use code-block copy button</summary>"
+            echo ""
+            echo '```text'
+            cat "$logs_file"
+            echo '```'
+            echo ""
+            echo "</details>"
+            echo ""
+
+            prompt_file=$(mktemp)
+            {
+              echo "Fix this GitHub Actions deployment pipeline failure."
+              echo ""
+              echo "## Context"
+              echo "- Repository: ${REPO}"
+              echo "- Workflow: Deployment Pipeline (.github/workflows/deployment-pipeline.yml)"
+              echo "- Run: ${RUN_URL}"
+              echo "- Event: ${EVENT}"
+              echo "- Ref: ${REF}"
+              echo "- Commit: ${SHA}"
+              echo ""
+              echo "## Job results"
+              echo "- typecheck: ${TYPECHECK_RESULT}"
+              echo "- build-and-push: ${BUILD_RESULT}"
+              echo "- deploy-cloudflare: ${DEPLOY_RESULT}"
+              echo ""
+              echo "## Failed jobs"
+              printf '%s\n' "$failed_jobs_md" | sed 's/\[\([^]]*\)\]([^)]*)/\1/g' | sed 's/\*\*//g'
+              echo ""
+              echo "## Failed step logs (truncated)"
+              cat "$logs_file"
+              echo ""
+              echo "## Your task"
+              echo "1. Identify the root cause from the logs above."
+              echo "2. Propose a minimal fix (file paths and exact edits)."
+              echo "3. Note if the failure is in an external repo checked out in the matrix (see workflow matrix.checkout_repo)."
+              echo "4. Call out missing secrets or infra (CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, GHCR permissions) if relevant."
+            } > "$prompt_file"
+
+            echo "<details open>"
+            echo "<summary><strong>Copy-paste LLM prompt</strong> — expand, hover the code block, click the copy icon (top-right)</summary>"
+            echo ""
+            echo "_Paste the entire block below into Cursor, ChatGPT, or Claude._"
+            echo ""
+            echo '```text'
+            cat "$prompt_file"
+            echo '```'
+            echo ""
+            echo "</details>"
+
+            rm -f "$logs_file" "$prompt_file"
+          }
 
           {
-            echo "## Container Images"
-            echo ""
-            echo "| Image | Tags | Pull |"
-            echo "|-------|------|------|"
+            if [ "$pipeline_failed" = "true" ]; then
+              echo "# Deployment pipeline failed"
+              echo ""
+              write_failure_diagnostics
+              echo "---"
+              echo ""
+            fi
 
-            for id in \
-              portfolio normalizer-app pickflix \
-              headless-combobox-docs headless-combobox-svelte-example \
-              moviefinder-app-rust moviefinder-app-go moviefinder-app-react moviefinder-app-clojurescript \
-              todo-app image-service connect-four screenshot-service \
-              anime-blog snake-game match-three simon-says quiz-maker cheese smart-dog-door; do
-              image="ghcr.io/${OWNER}/${id}"
-              echo "| \`${id}\` | \`latest\` \`${SHORT_SHA}\` | \`docker pull ${image}:latest\` |"
-            done
+            if [ "$IS_MAIN_PUSH" = "true" ] && [ "$BUILD_RESULT" != "skipped" ]; then
+              echo "## Container Images"
+              echo ""
+              echo "| Image | Tags | Pull | URL |"
+              echo "|-------|------|------|-----|"
 
-            echo ""
-            echo "**Build result:** \`${BUILD_RESULT}\`"
+              print_row() {
+                id="$1"
+                host="$2"
+                image="ghcr.io/${OWNER}/${id}"
+                echo "| \`${id}\` | \`latest\` \`${SHORT_SHA}\` | \`docker pull ${image}:latest\` | https://${host} |"
+              }
+
+              print_row portfolio                       www.chrisvouga.dev
+              print_row normalizer-app                  normalizer.app
+              print_row pickflix                        pickflix.chrisvouga.dev
+              print_row headless-combobox-docs          headlesscombobox.chrisvouga.dev
+              print_row headless-combobox-svelte-example svelte.headlesscombobox.chrisvouga.dev
+              print_row moviefinder-app-rust            moviefinder-app-rust.chrisvouga.dev
+              print_row moviefinder-app-go              moviefinder-app-go.chrisvouga.dev
+              print_row moviefinder-app-react           moviefinder-app-react.chrisvouga.dev
+              print_row moviefinder-app-clojurescript   moviefinder-app-clojurescript.chrisvouga.dev
+              print_row todo-app                        todo.chrisvouga.dev
+              print_row image-service                   imageservice.chrisvouga.dev
+              print_row connect-four                    connectfour.chrisvouga.dev
+              print_row screenshot-service              screenshotservice.chrisvouga.dev
+              print_row anime-blog                      anime.chrisvouga.dev
+              print_row snake-game                      snake.chrisvouga.dev
+              print_row match-three                     matchthree.chrisvouga.dev
+              print_row simon-says                      simonsays.chrisvouga.dev
+              print_row quiz-maker                      quizmaker.chrisvouga.dev
+              print_row cheese                          cheese.chrisvouga.dev
+              print_row smart-dog-door                  smartdogdoor.chrisvouga.dev
+
+              echo ""
+              echo "## Squarespace → Cloudflare nameservers"
+              echo ""
+              echo "Custom domains use \`custom_domain = true\` in Wrangler, which creates DNS records **inside Cloudflare**. Squarespace must delegate each apex domain to Cloudflare nameservers (not individual A/CNAME rows in Squarespace)."
+              echo ""
+              echo "### 1. \`chrisvouga.dev\` (19 subdomains + \`www\`)"
+              echo ""
+              echo "**Cloudflare nameservers for this zone:**"
+              fetch_cloudflare_nameservers "chrisvouga.dev"
+              echo ""
+              echo "**Squarespace:** [Domains](https://account.squarespace.com/domains) → \`chrisvouga.dev\` → **DNS** → **Nameservers** → **Use custom nameservers** → paste every nameserver above (usually 2)."
+              echo ""
+              echo "**Hostnames auto-managed in Cloudflare after delegation:**"
+              echo "- \`www.chrisvouga.dev\`"
+              echo "- \`pickflix.chrisvouga.dev\`"
+              echo "- \`svelte.headlesscombobox.chrisvouga.dev\`"
+              echo "- \`headlesscombobox.chrisvouga.dev\`"
+              echo "- \`todo.chrisvouga.dev\`"
+              echo "- \`imageservice.chrisvouga.dev\`"
+              echo "- \`connectfour.chrisvouga.dev\`"
+              echo "- \`screenshotservice.chrisvouga.dev\`"
+              echo "- \`smartdogdoor.chrisvouga.dev\`"
+              echo "- \`quizmaker.chrisvouga.dev\`"
+              echo "- \`anime.chrisvouga.dev\`"
+              echo "- \`snake.chrisvouga.dev\`"
+              echo "- \`matchthree.chrisvouga.dev\`"
+              echo "- \`moviefinder-app-rust.chrisvouga.dev\`"
+              echo "- \`moviefinder-app-go.chrisvouga.dev\`"
+              echo "- \`moviefinder-app-react.chrisvouga.dev\`"
+              echo "- \`moviefinder-app-clojurescript.chrisvouga.dev\`"
+              echo "- \`simonsays.chrisvouga.dev\`"
+              echo "- \`cheese.chrisvouga.dev\`"
+              echo ""
+              echo "> Optional: add a Cloudflare redirect rule \`chrisvouga.dev\` → \`https://www.chrisvouga.dev\` if you want the bare apex to work."
+              echo ""
+              echo "### 2. \`normalizer.app\` (apex only)"
+              echo ""
+              echo "**Cloudflare nameservers for this zone:**"
+              fetch_cloudflare_nameservers "normalizer.app"
+              echo ""
+              echo "**Squarespace:** [Domains](https://account.squarespace.com/domains) → \`normalizer.app\` → **DNS** → **Nameservers** → **Use custom nameservers** → paste every nameserver above."
+              echo ""
+              echo "**Hostname auto-managed in Cloudflare after delegation:**"
+              echo "- \`normalizer.app\`"
+              echo ""
+              echo "### Checklist"
+              echo ""
+              echo "1. Both zones exist in [Cloudflare](https://dash.cloudflare.com/) under account \`${CLOUDFLARE_ACCOUNT_ID:-<set CLOUDFLARE_ACCOUNT_ID secret>}\`."
+              echo "2. Squarespace nameservers match the values listed above (propagation can take up to 48h)."
+              echo "3. Do **not** keep Squarespace DNS records for these hostnames — Cloudflare owns DNS once nameservers are switched."
+              echo "4. Re-run this workflow summary after any zone transfer to refresh nameserver values."
+            elif [ "$pipeline_failed" != "true" ]; then
+              echo "## Pipeline succeeded"
+              echo ""
+              echo "| Job | Result |"
+              echo "|-----|--------|"
+              echo "| typecheck | \`${TYPECHECK_RESULT}\` |"
+              echo "| build-and-push | \`${BUILD_RESULT}\` |"
+              echo "| deploy-cloudflare | \`${DEPLOY_RESULT}\` |"
+            fi
+
+            if [ "$IS_MAIN_PUSH" = "true" ] || [ "$pipeline_failed" = "true" ]; then
+              echo ""
+              echo "**Typecheck:** \`${TYPECHECK_RESULT}\` · **Build:** \`${BUILD_RESULT}\` · **Deploy:** \`${DEPLOY_RESULT}\`"
+            fi
           } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "$pipeline_failed" = "true" ]; then
+            exit 1
+          fi

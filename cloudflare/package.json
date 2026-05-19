@@ -1,0 +1,20 @@
+{
+  "name": "chrisvouga-cloudflare",
+  "version": "0.0.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "generate": "bun run ../scripts/generate-cloudflare.ts",
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@cloudflare/containers": "^0.3.4"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260101.0",
+    "typescript": "^5.9.3",
+    "wrangler": "^4.0.0"
+  }
+}

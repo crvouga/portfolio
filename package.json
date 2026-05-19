@@ -16,7 +16,9 @@
     "generate-all": "bun run screenshot-work && bun run screenshot-projects && bun run optimize-images && bun run generate-resume && bun run screenshot-main",
     "generate-resume": "bun run ./src/generate-resume.ts",
     "preview": "docker build -t portfolio-app . && docker run -p 80:80 portfolio-app",
-    "clone-projects": "bun run scripts/clone-projects.ts"
+    "clone-projects": "bun run scripts/clone-projects.ts",
+    "generate-cloudflare": "bun run scripts/generate-cloudflare.ts",
+    "setup-cloudflare-secrets": "bun run scripts/setup-cloudflare-secrets.ts"
   },
   "devDependencies": {
     "@types/bun": "latest",
