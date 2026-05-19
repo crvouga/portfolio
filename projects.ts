@@ -341,6 +341,9 @@ export const PROJECTS: readonly Project[] = [
     imageSrc: ["/normalizer-app-screenshot.optimized.webp"],
     galleryImageSrc: ["/normalizer-app-screenshot.png"],
     topics: ["typescript", "react", "tailwind", "bun", "postgres", "s3", "trpc", "zod"],
+    githubRepo: "crvouga/normalizer.app",
+    hostname: "normalizer.app",
+    port: 80,
   },
   {
     id: "airr",
