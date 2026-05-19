@@ -42,7 +42,7 @@ export function githubSecretName(_projectId: string, secret: string): string | n
 
 /** Secrets Store ID from env (GitHub: secrets.CLOUDFLARE_SECRETS_STORE_ID). */
 export function getSecretsStoreId(): string {
-  const id = process.env["CLOUDFLARE_SECRETS_STORE_ID"]?.trim();
+  const id = process.env["CLOUDFLARE_SECRETS_STORE_ID"]?.trim().replace(/\s+/g, "");
   if (!id) {
     throw new Error(
       "CLOUDFLARE_SECRETS_STORE_ID is required (GitHub repo secret in CI, or export locally).",

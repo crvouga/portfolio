@@ -36,6 +36,8 @@ Each value is copied into per-project Secrets Store bindings (e.g. `MOVIEFINDER_
 
 Secrets Store `store_id` in `wrangler.toml` comes only from `CLOUDFLARE_SECRETS_STORE_ID` (GitHub repo secret in CI; export the same name locally before `bun run generate-cloudflare`).
 
+`CLOUDFLARE_API_TOKEN` must include **Account → Secrets Store → Edit** (and Workers deploy permissions). Seeding uses `wrangler secrets-store`, same auth as deploy.
+
 ## DNS
 
 Routes use `custom_domain = true`. Zones `chrisvouga.dev` and `normalizer.app` must use Cloudflare nameservers.

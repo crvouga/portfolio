@@ -8,6 +8,11 @@ on:
     branches:
       - main
   workflow_dispatch:
+    inputs:
+      force_rebuild:
+        description: Rebuild and push all container images even if unchanged
+        type: boolean
+        default: false
 
 concurrency:
   group: deployment-pipeline-${{ github.ref }}
@@ -35,9 +40,31 @@ jobs:
       - name: Type check
         run: bun run typecheck
 
+  changes:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    outputs:
+      portfolio: ${{ steps.filter.outputs.portfolio }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Detect portfolio file changes
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            portfolio:
+              - Dockerfile
+              - src/**
+              - package.json
+              - bun.lock
+              - tsconfig.json
+              - public/**
+
   build-and-push:
     runs-on: ubuntu-latest
-    needs: typecheck
+    needs: [typecheck, changes]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     permissions:
       contents: read
@@ -164,19 +191,63 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
 
+      - name: Decide whether to build
+        id: should_build
+        env:
+          GHCR_IMAGE: ghcr.io/${{ github.repository }}
+          CHECKOUT_REPO: ${{ matrix.checkout_repo }}
+          CHECKOUT_PATH: ${{ matrix.checkout_path }}
+          PORTFOLIO_CHANGED: ${{ needs.changes.outputs.portfolio }}
+          FORCE_REBUILD: ${{ github.event_name == 'workflow_dispatch' && inputs.force_rebuild }}
+        run: |
+          GHCR_IMAGE=$(echo "$GHCR_IMAGE" | tr '[:upper:]' '[:lower:]')
+          TAG="${{ matrix.id }}"
+
+          if [ "$FORCE_REBUILD" = "true" ]; then
+            echo "build=true" >> "$GITHUB_OUTPUT"
+            echo "reason=force_rebuild" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if [ -z "$CHECKOUT_REPO" ]; then
+            if [ "$PORTFOLIO_CHANGED" != "true" ]; then
+              echo "build=false" >> "$GITHUB_OUTPUT"
+              echo "reason=portfolio paths unchanged" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            CONTENT_SHA="${{ github.sha }}"
+          else
+            CONTENT_SHA=$(git -C "$CHECKOUT_PATH" rev-parse HEAD)
+          fi
+
+          echo "content_sha=${CONTENT_SHA}" >> "$GITHUB_OUTPUT"
+
+          if docker buildx imagetools inspect "${GHCR_IMAGE}:${TAG}-${CONTENT_SHA}" >/dev/null 2>&1; then
+            echo "build=false" >> "$GITHUB_OUTPUT"
+            echo "reason=image ${TAG}-${CONTENT_SHA} already in GHCR" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "build=true" >> "$GITHUB_OUTPUT"
+          echo "reason=new content ${CONTENT_SHA}" >> "$GITHUB_OUTPUT"
+
+      - name: Skip build (unchanged)
+        if: steps.should_build.outputs.build != 'true'
+        run: echo "Skipping ${{ matrix.id }} — ${{ steps.should_build.outputs.reason }}"
+
       - name: Build and push
         id: build
+        if: steps.should_build.outputs.build == 'true'
         env:
-          # One GHCR package (this repo); matrix id is the image tag. GITHUB_TOKEN can only
-          # publish packages linked to the workflow repository, not ghcr.io/owner/simon-says etc.
           GHCR_IMAGE: ghcr.io/${{ github.repository }}
+          CONTENT_SHA: ${{ steps.should_build.outputs.content_sha }}
         run: |
           GHCR_IMAGE=$(echo "$GHCR_IMAGE" | tr '[:upper:]' '[:lower:]')
           docker buildx build \
             --platform linux/amd64 \
             --file "${{ matrix.dockerfile }}" \
             --tag "${GHCR_IMAGE}:${{ matrix.id }}-latest" \
-            --tag "${GHCR_IMAGE}:${{ matrix.id }}-${{ github.sha }}" \
+            --tag "${GHCR_IMAGE}:${{ matrix.id }}-${CONTENT_SHA}" \
             --push \
             "${{ matrix.build_context }}"
           echo "image=${GHCR_IMAGE}:${{ matrix.id }}-latest" >> "$GITHUB_OUTPUT"
@@ -197,6 +268,7 @@ jobs:
 
       - name: Generate Cloudflare config
         env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_SECRETS_STORE_ID: ${{ secrets.CLOUDFLARE_SECRETS_STORE_ID }}
         run: bun run generate-cloudflare
 
