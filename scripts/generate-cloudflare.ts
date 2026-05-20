@@ -42,6 +42,9 @@ if (process.env["GITHUB_ACTIONS"] === "true" && !ACCOUNT_ID) {
 const CONTAINER_IMAGE_REPO = (
   process.env["CONTAINER_IMAGE_REPO"] ?? "docker.io/crvouga/chrisvouga-dev"
 ).toLowerCase();
+const CONTAINER_IMAGE_TAG = (
+  process.env["CONTAINER_IMAGE_TAG"] ?? "d9e6033aadb8699dca39f9ae3692c22dc81e15a8"
+).trim();
 
 const ROOT = execSync("git rev-parse --show-toplevel", { encoding: "utf-8" }).trim();
 const CF_DIR = join(ROOT, "cloudflare");
@@ -139,7 +142,7 @@ function generateWranglerToml(): string {
     lines.push(`# ${t.id}`);
     lines.push(`[[containers]]`);
     lines.push(`class_name = "${containerClassName(t.id)}"`);
-    lines.push(`image = "${CONTAINER_IMAGE_REPO}:${t.id}-latest"`);
+    lines.push(`image = "${CONTAINER_IMAGE_REPO}:${t.id}-${CONTAINER_IMAGE_TAG}"`);
     lines.push(`instance_type = "${instanceType(t.id)}"`);
     lines.push(`max_instances = 3`);
     lines.push("");
@@ -334,14 +337,21 @@ function generateIndexTs(): string {
   // Container classes
   lines.push(`export abstract class PortfolioContainerBase extends Container<Env> {`);
   lines.push(`  sleepAfter = "5m";`);
+  lines.push(`  private startupPromise?: Promise<void>;`);
   lines.push(``);
   lines.push(`  protected async ensureStarted(): Promise<void> {`);
-  lines.push(`    const portToCheck = this.defaultPort ?? 80;`);
-  lines.push(`    await this.start(undefined, {`);
-  lines.push(`      portToCheck,`);
-  lines.push(`      retries: 30,`);
-  lines.push(`      waitInterval: 500,`);
-  lines.push(`    });`);
+  lines.push(`    if (!this.startupPromise) {`);
+  lines.push(`      const portToCheck = this.defaultPort ?? 80;`);
+  lines.push(`      this.startupPromise = this.start(undefined, {`);
+  lines.push(`        portToCheck,`);
+  lines.push(`        retries: 30,`);
+  lines.push(`        waitInterval: 500,`);
+  lines.push(`      }).finally(() => {`);
+  lines.push(`        this.startupPromise = undefined;`);
+  lines.push(`      });`);
+  lines.push(`    }`);
+  lines.push(``);
+  lines.push(`    await this.startupPromise;`);
   lines.push(`  }`);
   lines.push(``);
   lines.push(`  override async fetch(request: Request): Promise<Response> {`);
