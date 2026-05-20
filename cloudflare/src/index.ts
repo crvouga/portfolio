@@ -167,14 +167,30 @@ export interface Env {
   readonly PORTFOLIO_MOVIEFINDER_APP_CLOJURESCRIPT__TWILIO_SERVICE_SID: SecretsStoreSecret;
 }
 
-export class Portfolio_Portfolio extends Container<Env> {
-  defaultPort = 80;
+export abstract class PortfolioContainerBase extends Container<Env> {
   sleepAfter = "5m";
+
+  protected async ensureStarted(): Promise<void> {
+    const portToCheck = this.defaultPort ?? 80;
+    await this.start(undefined, {
+      portToCheck,
+      retries: 30,
+      waitInterval: 500,
+    });
+  }
+
+  override async fetch(request: Request): Promise<Response> {
+    await this.ensureStarted();
+    return super.fetch(request);
+  }
 }
 
-export class Portfolio_Pickflix extends Container<Env> {
+export class Portfolio_Portfolio extends PortfolioContainerBase {
+  defaultPort = 80;
+}
+
+export class Portfolio_Pickflix extends PortfolioContainerBase {
   defaultPort = 3000;
-  sleepAfter = "5m";
   private secretsLoad?: Promise<void>;
 
   async fetch(request: Request): Promise<Response> {
@@ -188,69 +204,56 @@ export class Portfolio_Pickflix extends Container<Env> {
   }
 }
 
-export class Portfolio_HeadlessComboboxSvelteExample extends Container<Env> {
+export class Portfolio_HeadlessComboboxSvelteExample extends PortfolioContainerBase {
   defaultPort = 80;
-  sleepAfter = "5m";
 }
 
-export class Portfolio_HeadlessComboboxDocs extends Container<Env> {
+export class Portfolio_HeadlessComboboxDocs extends PortfolioContainerBase {
   defaultPort = 80;
-  sleepAfter = "5m";
 }
 
-export class Portfolio_TodoApp extends Container<Env> {
+export class Portfolio_TodoApp extends PortfolioContainerBase {
   defaultPort = 80;
-  sleepAfter = "5m";
 }
 
-export class Portfolio_ImageService extends Container<Env> {
+export class Portfolio_ImageService extends PortfolioContainerBase {
   defaultPort = 80;
-  sleepAfter = "5m";
 }
 
-export class Portfolio_ConnectFour extends Container<Env> {
+export class Portfolio_ConnectFour extends PortfolioContainerBase {
   defaultPort = 80;
-  sleepAfter = "5m";
 }
 
-export class Portfolio_NormalizerApp extends Container<Env> {
+export class Portfolio_NormalizerApp extends PortfolioContainerBase {
   defaultPort = 8080;
-  sleepAfter = "5m";
 }
 
-export class Portfolio_ScreenshotService extends Container<Env> {
+export class Portfolio_ScreenshotService extends PortfolioContainerBase {
   defaultPort = 80;
-  sleepAfter = "5m";
 }
 
-export class Portfolio_SmartDogDoor extends Container<Env> {
+export class Portfolio_SmartDogDoor extends PortfolioContainerBase {
   defaultPort = 80;
-  sleepAfter = "5m";
 }
 
-export class Portfolio_QuizMaker extends Container<Env> {
+export class Portfolio_QuizMaker extends PortfolioContainerBase {
   defaultPort = 80;
-  sleepAfter = "5m";
 }
 
-export class Portfolio_AnimeBlog extends Container<Env> {
+export class Portfolio_AnimeBlog extends PortfolioContainerBase {
   defaultPort = 80;
-  sleepAfter = "5m";
 }
 
-export class Portfolio_SnakeGame extends Container<Env> {
+export class Portfolio_SnakeGame extends PortfolioContainerBase {
   defaultPort = 80;
-  sleepAfter = "5m";
 }
 
-export class Portfolio_MatchThree extends Container<Env> {
+export class Portfolio_MatchThree extends PortfolioContainerBase {
   defaultPort = 80;
-  sleepAfter = "5m";
 }
 
-export class Portfolio_MoviefinderAppRust extends Container<Env> {
+export class Portfolio_MoviefinderAppRust extends PortfolioContainerBase {
   defaultPort = 80;
-  sleepAfter = "5m";
   private secretsLoad?: Promise<void>;
 
   async fetch(request: Request): Promise<Response> {
@@ -264,9 +267,8 @@ export class Portfolio_MoviefinderAppRust extends Container<Env> {
   }
 }
 
-export class Portfolio_MoviefinderAppGo extends Container<Env> {
+export class Portfolio_MoviefinderAppGo extends PortfolioContainerBase {
   defaultPort = 80;
-  sleepAfter = "5m";
   private secretsLoad?: Promise<void>;
 
   async fetch(request: Request): Promise<Response> {
@@ -280,9 +282,8 @@ export class Portfolio_MoviefinderAppGo extends Container<Env> {
   }
 }
 
-export class Portfolio_MoviefinderAppReact extends Container<Env> {
+export class Portfolio_MoviefinderAppReact extends PortfolioContainerBase {
   defaultPort = 80;
-  sleepAfter = "5m";
   private secretsLoad?: Promise<void>;
 
   async fetch(request: Request): Promise<Response> {
@@ -296,9 +297,8 @@ export class Portfolio_MoviefinderAppReact extends Container<Env> {
   }
 }
 
-export class Portfolio_MoviefinderAppClojurescript extends Container<Env> {
+export class Portfolio_MoviefinderAppClojurescript extends PortfolioContainerBase {
   defaultPort = 8888;
-  sleepAfter = "5m";
   private secretsLoad?: Promise<void>;
 
   async fetch(request: Request): Promise<Response> {
@@ -312,9 +312,8 @@ export class Portfolio_MoviefinderAppClojurescript extends Container<Env> {
   }
 }
 
-export class Portfolio_SimonSays extends Container<Env> {
+export class Portfolio_SimonSays extends PortfolioContainerBase {
   defaultPort = 80;
-  sleepAfter = "5m";
 }
 
 export class Portfolio extends Portfolio_Portfolio {}
@@ -393,7 +392,7 @@ export default {
     }
 
     const ns = env[bindingKey as ContainerBindingKey];
-    const instance = getContainer(ns as DurableObjectNamespace<Container<Env>>, hostname);
+    const instance = getContainer(ns as DurableObjectNamespace<PortfolioContainerBase>, hostname);
     return instance.fetch(request);
   },
 } satisfies ExportedHandler<Env>;

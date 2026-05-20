@@ -128,6 +128,9 @@ function generateWranglerToml(): string {
   }
   lines.push(`main = "src/index.ts"`);
   lines.push(`compatibility_date = "2026-05-19"`);
+  lines.push(`[observability]`);
+  lines.push(`enabled = true`);
+  lines.push(`head_sampling_rate = 1`);
   lines.push(`# Secrets Store ID: ${SECRETS_STORE_ID} (from CLOUDFLARE_SECRETS_STORE_ID / secrets.CLOUDFLARE_SECRETS_STORE_ID)`);
   lines.push("");
 
@@ -329,13 +332,31 @@ function generateIndexTs(): string {
   lines.push("");
 
   // Container classes
+  lines.push(`export abstract class PortfolioContainerBase extends Container<Env> {`);
+  lines.push(`  sleepAfter = "5m";`);
+  lines.push(``);
+  lines.push(`  protected async ensureStarted(): Promise<void> {`);
+  lines.push(`    const portToCheck = this.defaultPort ?? 80;`);
+  lines.push(`    await this.start(undefined, {`);
+  lines.push(`      portToCheck,`);
+  lines.push(`      retries: 30,`);
+  lines.push(`      waitInterval: 500,`);
+  lines.push(`    });`);
+  lines.push(`  }`);
+  lines.push(``);
+  lines.push(`  override async fetch(request: Request): Promise<Response> {`);
+  lines.push(`    await this.ensureStarted();`);
+  lines.push(`    return super.fetch(request);`);
+  lines.push(`  }`);
+  lines.push(`}`);
+  lines.push(``);
+
   for (const t of TARGETS) {
     const className = containerClassName(t.id);
     const hasSecrets =
       t.secrets.length > 0 || Object.keys(staticContainerEnv(t.id, t.port)).length > 0;
-    lines.push(`export class ${className} extends Container<Env> {`);
+    lines.push(`export class ${className} extends PortfolioContainerBase {`);
     lines.push(`  defaultPort = ${t.port};`);
-    lines.push(`  sleepAfter = "5m";`);
     if (hasSecrets) {
       lines.push(`  private secretsLoad?: Promise<void>;`);
       lines.push("");
@@ -391,7 +412,7 @@ function generateIndexTs(): string {
   lines.push("");
   lines.push(`    const ns = env[bindingKey as ContainerBindingKey];`);
   lines.push(
-    `    const instance = getContainer(ns as DurableObjectNamespace<Container<Env>>, hostname);`,
+    `    const instance = getContainer(ns as DurableObjectNamespace<PortfolioContainerBase>, hostname);`,
   );
   lines.push(`    return instance.fetch(request);`);
   lines.push(`  },`);
