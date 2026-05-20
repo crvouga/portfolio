@@ -378,6 +378,65 @@ const HOSTNAME_TO_BINDING: Record<string, keyof Env> = {
 
 type ContainerBindingKey = (typeof HOSTNAME_TO_BINDING)[keyof typeof HOSTNAME_TO_BINDING];
 
+const RECOVERY_INSTANCE_SUFFIX = "recovery-v1";
+
+function isRecoverableStartupFailure(bodyText: string): boolean {
+  const normalized = bodyText.toLowerCase();
+  return (
+    normalized.includes("failed to start container") ||
+    normalized.includes("the container is not running") ||
+    normalized.includes("the operation was aborted") ||
+    normalized.includes("there is no container instance available at this time")
+  );
+}
+
+async function fetchContainerResponse(
+  ns: DurableObjectNamespace<PortfolioContainerBase>,
+  request: Request,
+  instanceId: string,
+): Promise<Response> {
+  try {
+    const instance = getContainer(ns, instanceId);
+    return await instance.fetch(request);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return new Response(`Failed to start container: ${message}`, { status: 500 });
+  }
+}
+
+async function fetchWithStartupRecovery(
+  ns: DurableObjectNamespace<PortfolioContainerBase>,
+  request: Request,
+  hostname: string,
+): Promise<Response> {
+  const primaryResponse = await fetchContainerResponse(ns, request, hostname);
+  if (!["GET", "HEAD", "OPTIONS"].includes(request.method.toUpperCase())) {
+    return primaryResponse;
+  }
+
+  if (primaryResponse.status < 500) {
+    return primaryResponse;
+  }
+
+  const primaryBody = await primaryResponse.clone().text();
+  if (!isRecoverableStartupFailure(primaryBody)) {
+    return primaryResponse;
+  }
+
+  const recoveryInstanceId = `${hostname}:${RECOVERY_INSTANCE_SUFFIX}`;
+  const recoveryResponse = await fetchContainerResponse(ns, request, recoveryInstanceId);
+  if (recoveryResponse.status < 500) {
+    return recoveryResponse;
+  }
+
+  const recoveryBody = await recoveryResponse.clone().text();
+  if (!isRecoverableStartupFailure(recoveryBody)) {
+    return recoveryResponse;
+  }
+
+  return primaryResponse;
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
@@ -391,8 +450,7 @@ export default {
       );
     }
 
-    const ns = env[bindingKey as ContainerBindingKey];
-    const instance = getContainer(ns as DurableObjectNamespace<PortfolioContainerBase>, hostname);
-    return instance.fetch(request);
+    const ns = env[bindingKey as ContainerBindingKey] as DurableObjectNamespace<PortfolioContainerBase>;
+    return fetchWithStartupRecovery(ns, request, hostname);
   },
 } satisfies ExportedHandler<Env>;
