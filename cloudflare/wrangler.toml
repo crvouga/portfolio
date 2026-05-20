@@ -11,134 +11,134 @@ head_sampling_rate = 1
 # portfolio
 [[containers]]
 class_name = "Portfolio_Portfolio"
-image = "docker.io/crvouga/chrisvouga-dev:portfolio-d9e6033aadb8699dca39f9ae3692c22dc81e15a8"
-instance_type = "lite"
+image = "docker.io/crvouga/chrisvouga-dev:portfolio-latest"
+instance_type = "basic"
 max_instances = 3
 
 # pickflix
 [[containers]]
 class_name = "Portfolio_Pickflix"
-image = "docker.io/crvouga/chrisvouga-dev:pickflix-d9e6033aadb8699dca39f9ae3692c22dc81e15a8"
+image = "docker.io/crvouga/chrisvouga-dev:pickflix-latest"
 instance_type = "basic"
 max_instances = 3
 
 # headless-combobox-svelte-example
 [[containers]]
 class_name = "Portfolio_HeadlessComboboxSvelteExample"
-image = "docker.io/crvouga/chrisvouga-dev:headless-combobox-svelte-example-d9e6033aadb8699dca39f9ae3692c22dc81e15a8"
-instance_type = "lite"
+image = "docker.io/crvouga/chrisvouga-dev:headless-combobox-svelte-example-latest"
+instance_type = "basic"
 max_instances = 3
 
 # headless-combobox-docs
 [[containers]]
 class_name = "Portfolio_HeadlessComboboxDocs"
-image = "docker.io/crvouga/chrisvouga-dev:headless-combobox-docs-d9e6033aadb8699dca39f9ae3692c22dc81e15a8"
-instance_type = "lite"
+image = "docker.io/crvouga/chrisvouga-dev:headless-combobox-docs-latest"
+instance_type = "basic"
 max_instances = 3
 
 # todo-app
 [[containers]]
 class_name = "Portfolio_TodoApp"
-image = "docker.io/crvouga/chrisvouga-dev:todo-app-d9e6033aadb8699dca39f9ae3692c22dc81e15a8"
+image = "docker.io/crvouga/chrisvouga-dev:todo-app-latest"
 instance_type = "basic"
 max_instances = 3
 
 # image-service
 [[containers]]
 class_name = "Portfolio_ImageService"
-image = "docker.io/crvouga/chrisvouga-dev:image-service-d9e6033aadb8699dca39f9ae3692c22dc81e15a8"
+image = "docker.io/crvouga/chrisvouga-dev:image-service-latest"
 instance_type = "lite"
 max_instances = 3
 
 # connect-four
 [[containers]]
 class_name = "Portfolio_ConnectFour"
-image = "docker.io/crvouga/chrisvouga-dev:connect-four-d9e6033aadb8699dca39f9ae3692c22dc81e15a8"
+image = "docker.io/crvouga/chrisvouga-dev:connect-four-latest"
 instance_type = "lite"
 max_instances = 3
 
 # normalizer-app
 [[containers]]
 class_name = "Portfolio_NormalizerApp"
-image = "docker.io/crvouga/chrisvouga-dev:normalizer-app-d9e6033aadb8699dca39f9ae3692c22dc81e15a8"
+image = "docker.io/crvouga/chrisvouga-dev:normalizer-app-latest"
 instance_type = "basic"
 max_instances = 3
 
 # screenshot-service
 [[containers]]
 class_name = "Portfolio_ScreenshotService"
-image = "docker.io/crvouga/chrisvouga-dev:screenshot-service-d9e6033aadb8699dca39f9ae3692c22dc81e15a8"
+image = "docker.io/crvouga/chrisvouga-dev:screenshot-service-latest"
 instance_type = "lite"
 max_instances = 3
 
 # smart-dog-door
 [[containers]]
 class_name = "Portfolio_SmartDogDoor"
-image = "docker.io/crvouga/chrisvouga-dev:smart-dog-door-d9e6033aadb8699dca39f9ae3692c22dc81e15a8"
+image = "docker.io/crvouga/chrisvouga-dev:smart-dog-door-latest"
 instance_type = "lite"
 max_instances = 3
 
 # quiz-maker
 [[containers]]
 class_name = "Portfolio_QuizMaker"
-image = "docker.io/crvouga/chrisvouga-dev:quiz-maker-d9e6033aadb8699dca39f9ae3692c22dc81e15a8"
-instance_type = "lite"
+image = "docker.io/crvouga/chrisvouga-dev:quiz-maker-latest"
+instance_type = "basic"
 max_instances = 3
 
 # anime-blog
 [[containers]]
 class_name = "Portfolio_AnimeBlog"
-image = "docker.io/crvouga/chrisvouga-dev:anime-blog-d9e6033aadb8699dca39f9ae3692c22dc81e15a8"
-instance_type = "lite"
+image = "docker.io/crvouga/chrisvouga-dev:anime-blog-latest"
+instance_type = "basic"
 max_instances = 3
 
 # snake-game
 [[containers]]
 class_name = "Portfolio_SnakeGame"
-image = "docker.io/crvouga/chrisvouga-dev:snake-game-d9e6033aadb8699dca39f9ae3692c22dc81e15a8"
-instance_type = "lite"
+image = "docker.io/crvouga/chrisvouga-dev:snake-game-latest"
+instance_type = "basic"
 max_instances = 3
 
 # match-three
 [[containers]]
 class_name = "Portfolio_MatchThree"
-image = "docker.io/crvouga/chrisvouga-dev:match-three-d9e6033aadb8699dca39f9ae3692c22dc81e15a8"
-instance_type = "lite"
+image = "docker.io/crvouga/chrisvouga-dev:match-three-latest"
+instance_type = "basic"
 max_instances = 3
 
 # moviefinder-app-rust
 [[containers]]
 class_name = "Portfolio_MoviefinderAppRust"
-image = "docker.io/crvouga/chrisvouga-dev:moviefinder-app-rust-d9e6033aadb8699dca39f9ae3692c22dc81e15a8"
+image = "docker.io/crvouga/chrisvouga-dev:moviefinder-app-rust-latest"
 instance_type = "basic"
 max_instances = 3
 
 # moviefinder-app-go
 [[containers]]
 class_name = "Portfolio_MoviefinderAppGo"
-image = "docker.io/crvouga/chrisvouga-dev:moviefinder-app-go-d9e6033aadb8699dca39f9ae3692c22dc81e15a8"
+image = "docker.io/crvouga/chrisvouga-dev:moviefinder-app-go-latest"
 instance_type = "basic"
 max_instances = 3
 
 # moviefinder-app-react
 [[containers]]
 class_name = "Portfolio_MoviefinderAppReact"
-image = "docker.io/crvouga/chrisvouga-dev:moviefinder-app-react-d9e6033aadb8699dca39f9ae3692c22dc81e15a8"
+image = "docker.io/crvouga/chrisvouga-dev:moviefinder-app-react-latest"
 instance_type = "basic"
 max_instances = 3
 
 # moviefinder-app-clojurescript
 [[containers]]
 class_name = "Portfolio_MoviefinderAppClojurescript"
-image = "docker.io/crvouga/chrisvouga-dev:moviefinder-app-clojurescript-d9e6033aadb8699dca39f9ae3692c22dc81e15a8"
+image = "docker.io/crvouga/chrisvouga-dev:moviefinder-app-clojurescript-latest"
 instance_type = "basic"
 max_instances = 3
 
 # simon-says
 [[containers]]
 class_name = "Portfolio_SimonSays"
-image = "docker.io/crvouga/chrisvouga-dev:simon-says-d9e6033aadb8699dca39f9ae3692c22dc81e15a8"
-instance_type = "lite"
+image = "docker.io/crvouga/chrisvouga-dev:simon-says-latest"
+instance_type = "basic"
 max_instances = 3
 
 [[durable_objects.bindings]]

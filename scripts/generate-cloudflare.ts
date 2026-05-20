@@ -43,7 +43,7 @@ const CONTAINER_IMAGE_REPO = (
   process.env["CONTAINER_IMAGE_REPO"] ?? "docker.io/crvouga/chrisvouga-dev"
 ).toLowerCase();
 const CONTAINER_IMAGE_TAG = (
-  process.env["CONTAINER_IMAGE_TAG"] ?? "d9e6033aadb8699dca39f9ae3692c22dc81e15a8"
+  process.env["CONTAINER_IMAGE_TAG"] ?? "latest"
 ).trim();
 
 const ROOT = execSync("git rev-parse --show-toplevel", { encoding: "utf-8" }).trim();
@@ -89,13 +89,21 @@ const TARGETS: readonly Target[] = [
 
 // Containers that need more than the default `lite` instance
 const BASIC_INSTANCE_IDS = new Set<string>([
+  "portfolio",
   "pickflix",
+  "headless-combobox-svelte-example",
+  "headless-combobox-docs",
   "todo-app",
   "normalizer-app",
+  "quiz-maker",
+  "anime-blog",
+  "snake-game",
+  "match-three",
   "moviefinder-app-rust",
   "moviefinder-app-go",
   "moviefinder-app-react",
   "moviefinder-app-clojurescript",
+  "simon-says",
 ]);
 
 function instanceType(id: string): "lite" | "basic" {
@@ -337,27 +345,6 @@ function generateIndexTs(): string {
   // Container classes
   lines.push(`export abstract class PortfolioContainerBase extends Container<Env> {`);
   lines.push(`  sleepAfter = "5m";`);
-  lines.push(`  private startupPromise?: Promise<void>;`);
-  lines.push(``);
-  lines.push(`  protected async ensureStarted(): Promise<void> {`);
-  lines.push(`    if (!this.startupPromise) {`);
-  lines.push(`      const portToCheck = this.defaultPort ?? 80;`);
-  lines.push(`      this.startupPromise = this.start(undefined, {`);
-  lines.push(`        portToCheck,`);
-  lines.push(`        retries: 30,`);
-  lines.push(`        waitInterval: 500,`);
-  lines.push(`      }).finally(() => {`);
-  lines.push(`        this.startupPromise = undefined;`);
-  lines.push(`      });`);
-  lines.push(`    }`);
-  lines.push(``);
-  lines.push(`    await this.startupPromise;`);
-  lines.push(`  }`);
-  lines.push(``);
-  lines.push(`  override async fetch(request: Request): Promise<Response> {`);
-  lines.push(`    await this.ensureStarted();`);
-  lines.push(`    return super.fetch(request);`);
-  lines.push(`  }`);
   lines.push(`}`);
   lines.push(``);
 

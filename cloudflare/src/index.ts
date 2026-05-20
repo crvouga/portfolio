@@ -167,27 +167,6 @@ export interface Env {
 
 export abstract class PortfolioContainerBase extends Container<Env> {
   sleepAfter = "5m";
-  private startupPromise?: Promise<void>;
-
-  protected async ensureStarted(): Promise<void> {
-    if (!this.startupPromise) {
-      const portToCheck = this.defaultPort ?? 80;
-      this.startupPromise = this.start(undefined, {
-        portToCheck,
-        retries: 30,
-        waitInterval: 500,
-      }).finally(() => {
-        this.startupPromise = undefined;
-      });
-    }
-
-    await this.startupPromise;
-  }
-
-  override async fetch(request: Request): Promise<Response> {
-    await this.ensureStarted();
-    return super.fetch(request);
-  }
 }
 
 export class Portfolio_Portfolio extends PortfolioContainerBase {
