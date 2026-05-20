@@ -2,6 +2,7 @@
   "name": "chrisvouga-dev-aws",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "build": "tsc --noEmit",
     "watch": "tsc --noEmit -w",
@@ -11,10 +12,11 @@
   "devDependencies": {
     "@types/jest": "^30",
     "@types/node": "^24.10.1",
+    "aws-cdk": "2.1114.1",
     "jest": "^30",
     "ts-jest": "^29",
-    "aws-cdk": "2.1114.1",
     "ts-node": "^10.9.2",
+    "tsx": "^4.22.3",
     "typescript": "~5.9.3"
   },
   "dependencies": {

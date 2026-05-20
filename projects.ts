@@ -389,25 +389,6 @@ export const PROJECTS: readonly Project[] = [
       "css", "heroku", "material-ui", "nodejs", "postgres",
       "puppeteer", "react", "react-query", "typescript", "supabase",
     ],
-    githubRepo: "crvouga/screenshot-service",
-    hostname: "screenshotservice.chrisvouga.dev",
-    port: 80,
-  },
-  {
-    id: "smart-dog-door",
-    title: "Smart Dog Door",
-    setting: "side",
-    deployment: { t: "not-deployed-yet" },
-    code: { t: "public", url: "https://github.com/crvouga/smart-dog-door-python" },
-    description:
-      "IoT smart door system that uses computer vision to automatically open for dogs and close when cats are detected. Integrates with smart home platforms for seamless automation, demonstrating expertise in embedded systems and machine learning applications.",
-    imageAlt: IMAGE_ALT,
-    imageSrc: [],
-    galleryImageSrc: [],
-    topics: ["python"],
-    githubRepo: "crvouga/smart-dog-door-python",
-    hostname: "smartdogdoor.chrisvouga.dev",
-    port: 80,
   },
   {
     id: "orchard",
@@ -434,9 +415,6 @@ export const PROJECTS: readonly Project[] = [
     imageSrc: [],
     galleryImageSrc: [],
     topics: ["css", "express", "nodejs", "tailwind", "typescript", "vue"],
-    githubRepo: "crvouga/quiz-maker",
-    hostname: "quizmaker.chrisvouga.dev",
-    port: 80,
   },
   {
     id: "courier-website",
@@ -648,22 +626,76 @@ export const SIDE_PROJECTS: readonly Project[] = PROJECTS.filter(
 // ---------------------------------------------------------------------------
 
 export type DeployableProject = Project &
-  Required<Pick<Project, "githubRepo" | "hostname" | "port">>;
+  Required<Pick<Project, "githubRepo" | "hostname" | "port">> & {
+    readonly deployment: Extract<Deployment, { t: "public" }>;
+  };
 
+/**
+ * A project is deployable iff:
+ *   1) deployment.t === "public" (we still want to expose it on the public web), AND
+ *   2) it has full infra metadata (githubRepo + hostname + port).
+ *
+ * Projects flagged `not-deployed-yet` / `not-deployed-anymore` / `private` are
+ * intentionally excluded from any infra automation regardless of their other
+ * fields. This is a single source of truth used by AWS CDK, GitHub Actions,
+ * and decommission scripts.
+ */
 export function getDeployableProjects(): readonly DeployableProject[] {
   return PROJECTS.filter(
     (p): p is DeployableProject =>
-      p.githubRepo != null && p.hostname != null && p.port != null,
+      p.deployment.t === "public" &&
+      p.githubRepo != null &&
+      p.hostname != null &&
+      p.port != null,
   );
+}
+
+export type InfraTarget = {
+  readonly id: string;
+  readonly title: string;
+  readonly githubRepo: string;
+  readonly hostname: string;
+  readonly port: number;
+  readonly secrets: readonly string[];
+};
+
+/** The portfolio site itself (this repo). Not a Project entry to avoid self-reference. */
+export const PORTFOLIO_INFRA_TARGET: InfraTarget = {
+  id: "portfolio",
+  title: "chrisvouga.dev",
+  githubRepo: "crvouga/chrisvouga.dev",
+  hostname: "www.chrisvouga.dev",
+  port: 80,
+  secrets: [],
+};
+
+/**
+ * All targets that get deployed: the portfolio meta-site + every deployable Project.
+ * Used by AWS CDK, GitHub Actions matrix generation, and the decommission script.
+ */
+export function getInfraTargets(): readonly InfraTarget[] {
+  return [
+    PORTFOLIO_INFRA_TARGET,
+    ...getDeployableProjects().map(
+      (p): InfraTarget => ({
+        id: p.id,
+        title: p.title,
+        githubRepo: p.githubRepo,
+        hostname: p.hostname,
+        port: p.port,
+        secrets: p.secrets ?? [],
+      }),
+    ),
+  ];
 }
 
 export function getUniqueCloneRepos(): readonly { repo: string; dir: string }[] {
   const seen = new Set<string>();
   const out: { repo: string; dir: string }[] = [];
-  for (const p of getDeployableProjects()) {
-    if (p.id === "portfolio" || seen.has(p.githubRepo)) continue;
-    seen.add(p.githubRepo);
-    out.push({ repo: p.githubRepo, dir: p.githubRepo.split("/").pop()! });
+  for (const t of getInfraTargets()) {
+    if (t.id === "portfolio" || seen.has(t.githubRepo)) continue;
+    seen.add(t.githubRepo);
+    out.push({ repo: t.githubRepo, dir: t.githubRepo.split("/").pop()! });
   }
   return out;
 }

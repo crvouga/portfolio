@@ -1,152 +1,127 @@
 name: Build And Publish Images
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - "projects.ts"
+      - "Dockerfile"
+      - "nginx.conf"
+      - "aws/lambda-wrapper.Dockerfile"
+      - "scripts/generate-aws-deploy-matrix.ts"
+      - ".github/workflows/build-and-publish-images.yml"
   workflow_dispatch:
+    inputs:
+      project_id:
+        description: "Build a single project id (matches `projects.ts`); leave blank to build all."
+        required: false
+        type: string
 
 concurrency:
   group: build-and-publish-images-${{ github.ref }}
   cancel-in-progress: false
 
 permissions:
+  id-token: write
   contents: read
-  packages: write
+
+env:
+  AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
 
 jobs:
+  configure:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: oven-sh/setup-bun@v2
+      - id: matrix
+        env:
+          PROJECT_ID: ${{ inputs.project_id }}
+        run: |
+          set -euo pipefail
+          MATRIX=$(bun run scripts/generate-aws-deploy-matrix.ts)
+          if [ -n "${PROJECT_ID:-}" ]; then
+            MATRIX=$(echo "$MATRIX" | jq --arg pid "$PROJECT_ID" '.include |= map(select(.id == $pid))')
+            COUNT=$(echo "$MATRIX" | jq '.include | length')
+            if [ "$COUNT" = "0" ]; then
+              echo "::error::No project matched id: $PROJECT_ID"
+              exit 1
+            fi
+          fi
+          echo "matrix=$MATRIX" >> "$GITHUB_OUTPUT"
+
   build-and-push:
+    needs: configure
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - id: portfolio
-            checkout_repo: ""
-            checkout_path: "."
-            build_context: "."
-            dockerfile: "./Dockerfile"
-            platforms: linux/amd64,linux/arm64
-          - id: normalizer-app
-            checkout_repo: crvouga/normalizer.app
-            checkout_path: projects/normalizer.app
-            build_context: projects/normalizer.app
-            dockerfile: projects/normalizer.app/Dockerfile
-          - id: pickflix
-            checkout_repo: crvouga/pickflix-v1
-            checkout_path: projects/pickflix-v1
-            build_context: projects/pickflix-v1
-            dockerfile: projects/pickflix-v1/Dockerfile
-          - id: headless-combobox-docs
-            checkout_repo: crvouga/headless-combobox
-            checkout_path: projects/headless-combobox
-            build_context: projects/headless-combobox
-            dockerfile: projects/headless-combobox/Dockerfile
-          - id: headless-combobox-svelte-example
-            checkout_repo: crvouga/headless-combobox
-            checkout_path: projects/headless-combobox
-            build_context: projects/headless-combobox/example/svelte
-            dockerfile: projects/headless-combobox/example/svelte/Dockerfile
-          - id: moviefinder-app-rust
-            checkout_repo: crvouga/moviefinder.app-rust
-            checkout_path: projects/moviefinder.app-rust
-            build_context: projects/moviefinder.app-rust
-            dockerfile: projects/moviefinder.app-rust/Dockerfile
-          - id: moviefinder-app-go
-            checkout_repo: crvouga/moviefinder.app-go
-            checkout_path: projects/moviefinder.app-go
-            build_context: projects/moviefinder.app-go
-            dockerfile: projects/moviefinder.app-go/Dockerfile
-          - id: moviefinder-app-react
-            checkout_repo: crvouga/moviefinder.app-react
-            checkout_path: projects/moviefinder.app-react
-            build_context: projects/moviefinder.app-react
-            dockerfile: projects/moviefinder.app-react/Dockerfile
-          - id: moviefinder-app-clojurescript
-            checkout_repo: crvouga/moviefinder.app-clojurescript
-            checkout_path: projects/moviefinder.app-clojurescript
-            build_context: projects/moviefinder.app-clojurescript
-            dockerfile: projects/moviefinder.app-clojurescript/Dockerfile
-          - id: todo-app
-            checkout_repo: crvouga/todo-v1
-            checkout_path: projects/todo-v1
-            build_context: projects/todo-v1
-            dockerfile: projects/todo-v1/Dockerfile
-          - id: image-service
-            checkout_repo: crvouga/image-service
-            checkout_path: projects/image-service
-            build_context: projects/image-service
-            dockerfile: projects/image-service/Dockerfile
-          - id: connect-four
-            checkout_repo: crvouga/connect-four
-            checkout_path: projects/connect-four
-            build_context: projects/connect-four
-            dockerfile: projects/connect-four/Dockerfile
-          - id: screenshot-service
-            checkout_repo: crvouga/screenshot-service
-            checkout_path: projects/screenshot-service
-            build_context: projects/screenshot-service
-            dockerfile: projects/screenshot-service/Dockerfile
-          - id: anime-blog
-            checkout_repo: crvouga/anime
-            checkout_path: projects/anime
-            build_context: projects/anime
-            dockerfile: projects/anime/Dockerfile
-          - id: snake-game
-            checkout_repo: crvouga/snake
-            checkout_path: projects/snake
-            build_context: projects/snake
-            dockerfile: projects/snake/Dockerfile
-          - id: match-three
-            checkout_repo: crvouga/match-three
-            checkout_path: projects/match-three
-            build_context: projects/match-three
-            dockerfile: projects/match-three/Dockerfile
-          - id: simon-says
-            checkout_repo: crvouga/simon-says
-            checkout_path: projects/simon-says
-            build_context: projects/simon-says
-            dockerfile: projects/simon-says/Dockerfile
-          - id: quiz-maker
-            checkout_repo: crvouga/quiz-maker
-            checkout_path: projects/quiz-maker
-            build_context: projects/quiz-maker
-            dockerfile: projects/quiz-maker/Dockerfile
-          - id: smart-dog-door
-            checkout_repo: crvouga/smart-dog-door-python
-            checkout_path: projects/smart-dog-door-python
-            build_context: projects/smart-dog-door-python
-            dockerfile: projects/smart-dog-door-python/Dockerfile
-
+      matrix: ${{ fromJSON(needs.configure.outputs.matrix) }}
     steps:
       - name: Checkout portfolio (this repository)
-        if: ${{ matrix.id == 'portfolio' }}
         uses: actions/checkout@v5
 
       - name: Checkout ${{ matrix.checkout_repo }}
-        if: ${{ matrix.id != 'portfolio' }}
+        if: ${{ matrix.checkout_repo != '' }}
         uses: actions/checkout@v5
         with:
           repository: ${{ matrix.checkout_repo }}
           path: ${{ matrix.checkout_path }}
 
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v4
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          registry: docker.io
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
+          role-to-assume: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/GitHubActionsRole
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
 
-      - name: Build and push
-        env:
-          CONTAINER_IMAGE_REPO: docker.io/${{ secrets.DOCKER_USERNAME }}/chrisvouga-dev
-          CONTAINER_IMAGE_PLATFORMS: ${{ matrix.platforms || 'linux/amd64' }}
+      - name: Build base image (original Dockerfile)
         run: |
-          CONTAINER_IMAGE_REPO=$(echo "$CONTAINER_IMAGE_REPO" | tr '[:upper:]' '[:lower:]')
+          set -euo pipefail
           docker buildx build \
-            --platform "${CONTAINER_IMAGE_PLATFORMS}" \
+            --platform linux/amd64 \
             --file "${{ matrix.dockerfile }}" \
-            --tag "${CONTAINER_IMAGE_REPO}:${{ matrix.id }}-latest" \
-            --tag "${CONTAINER_IMAGE_REPO}:${{ matrix.id }}-${{ github.sha }}" \
-            --push \
+            --tag "chrisvouga-base:${{ matrix.id }}" \
+            --load \
             "${{ matrix.build_context }}"
+
+      - name: Wrap with AWS Lambda Web Adapter and push to ECR
+        run: |
+          set -euo pipefail
+          REGISTRY="${{ steps.ecr.outputs.registry }}"
+          REPO_URI="${REGISTRY}/${{ matrix.id }}"
+          docker buildx build \
+            --platform linux/amd64 \
+            --file aws/lambda-wrapper.Dockerfile \
+            --build-arg BASE_IMAGE="chrisvouga-base:${{ matrix.id }}" \
+            --tag "${REPO_URI}:latest" \
+            --tag "${REPO_URI}:${{ github.sha }}" \
+            --provenance=false \
+            --push \
+            .
+          echo "Pushed ${REPO_URI}:latest and ${REPO_URI}:${{ github.sha }}"
+
+      - name: Roll out new image to Lambda
+        run: |
+          set -euo pipefail
+          FN_NAME="chrisvouga-$(echo "${{ matrix.id }}" | tr '[:upper:]' '[:lower:]' | tr -c 'a-z0-9-' '-' | cut -c 1-40)"
+          REGISTRY="${{ steps.ecr.outputs.registry }}"
+          IMAGE_URI="${REGISTRY}/${{ matrix.id }}:${{ github.sha }}"
+          if aws lambda get-function --function-name "$FN_NAME" --region "${AWS_REGION}" >/dev/null 2>&1; then
+            aws lambda update-function-code \
+              --function-name "$FN_NAME" \
+              --image-uri "$IMAGE_URI" \
+              --region "${AWS_REGION}" \
+              --publish >/dev/null
+            echo "Lambda $FN_NAME updated to $IMAGE_URI"
+          else
+            echo "Lambda $FN_NAME not found yet — skipping rollout (LambdaServicesStack must be deployed first)."
+          fi

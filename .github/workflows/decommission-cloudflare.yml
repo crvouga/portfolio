@@ -1,0 +1,55 @@
+name: Decommission Cloudflare
+
+# Manual, gated workflow that tears down Cloudflare resources for this repo
+# (Worker, container apps, custom-domain routes, Secrets Store secrets).
+# Defaults to dry-run; set the `apply` input to actually delete.
+
+on:
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: "Set to true to actually delete (default is dry-run)."
+        required: false
+        type: boolean
+        default: false
+      delete_store:
+        description: "Also delete the Secrets Store itself (only with apply=true)."
+        required: false
+        type: boolean
+        default: false
+
+concurrency:
+  group: decommission-cloudflare-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  decommission:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.apply && 'cloudflare-decommission' || 'cloudflare-dry-run' }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Show plan
+        run: |
+          echo "Mode: ${{ inputs.apply && 'APPLY (destructive)' || 'DRY-RUN' }}"
+          echo "Delete store: ${{ inputs.delete_store }}"
+
+      - name: Run decommission
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_SECRETS_STORE_ID: ${{ secrets.CLOUDFLARE_SECRETS_STORE_ID }}
+        run: |
+          set -euo pipefail
+          ARGS=()
+          if [ "${{ inputs.apply }}" = "true" ]; then
+            ARGS+=("--apply")
+          fi
+          if [ "${{ inputs.delete_store }}" = "true" ]; then
+            ARGS+=("--delete-store")
+          fi
+          bun run scripts/decommission-cloudflare.ts "${ARGS[@]}"

@@ -1,0 +1,63 @@
+name: Route53 Cutover
+
+# Manual workflow that:
+#   1. Deploys the Route53 stack (creates hosted zones).
+#   2. Prints authoritative nameservers to the workflow run summary.
+#
+# Use the printed NS values to update the domain registrar (Squarespace,
+# Google Domains, etc). After delegation propagates, run the deployment
+# pipeline so ACM cert validation succeeds.
+
+on:
+  workflow_dispatch:
+    inputs:
+      deploy_zone_stack:
+        description: "Deploy/refresh Route53Stack before reading NS records."
+        required: false
+        type: boolean
+        default: true
+
+concurrency:
+  group: route53-cutover-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
+
+jobs:
+  cutover:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/GitHubActionsRole
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Install AWS dependencies
+        if: ${{ inputs.deploy_zone_stack }}
+        working-directory: aws
+        run: npm ci
+
+      - name: Deploy Route53Stack
+        if: ${{ inputs.deploy_zone_stack }}
+        working-directory: aws
+        env:
+          CDK_DEFAULT_ACCOUNT: ${{ vars.AWS_ACCOUNT_ID }}
+          CDK_DEFAULT_REGION: ${{ env.AWS_REGION }}
+        run: npx cdk deploy Route53Stack --require-approval never
+
+      - name: Print authoritative nameservers
+        run: bun run scripts/print-route53-nameservers.ts --markdown

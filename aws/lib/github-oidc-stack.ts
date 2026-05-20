@@ -7,6 +7,13 @@ export type GithubOidcStackProps = cdk.StackProps & {
   readonly githubRepo: string;
 };
 
+/**
+ * GitHub OIDC provider + a single role that GitHub Actions assumes for the
+ * full deploy pipeline:
+ *   - ECR push (build-and-publish-images workflow)
+ *   - CDK deploy of all stacks (deployment-pipeline workflow)
+ *   - `aws lambda update-function-code` rollouts after image push
+ */
 export class GithubOidcStack extends cdk.Stack {
   public readonly githubActionsRole: iam.Role;
 
@@ -20,7 +27,8 @@ export class GithubOidcStack extends cdk.Stack {
 
     this.githubActionsRole = new iam.Role(this, "GitHubActionsRole", {
       roleName: "GitHubActionsRole",
-      description: "GitHub Actions OIDC — ECR push for chrisvouga.dev pipelines",
+      description: "GitHub Actions OIDC — chrisvouga.dev deploy pipelines (ECR + CDK + Lambda)",
+      maxSessionDuration: cdk.Duration.hours(1),
       assumedBy: new iam.WebIdentityPrincipal(provider.openIdConnectProviderArn, {
         StringEquals: {
           "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
@@ -30,8 +38,45 @@ export class GithubOidcStack extends cdk.Stack {
         },
       }),
     });
+
     this.githubActionsRole.addManagedPolicy(
       iam.ManagedPolicy.fromAwsManagedPolicyName("AmazonEC2ContainerRegistryPowerUser"),
+    );
+
+    this.githubActionsRole.addToPolicy(
+      new iam.PolicyStatement({
+        sid: "AssumeCdkBootstrapRoles",
+        actions: ["sts:AssumeRole"],
+        resources: [
+          `arn:aws:iam::${cdk.Stack.of(this).account}:role/cdk-*`,
+        ],
+      }),
+    );
+
+    this.githubActionsRole.addToPolicy(
+      new iam.PolicyStatement({
+        sid: "LambdaImageRollout",
+        actions: [
+          "lambda:UpdateFunctionCode",
+          "lambda:GetFunction",
+          "lambda:GetFunctionConfiguration",
+          "lambda:UpdateFunctionConfiguration",
+          "lambda:PublishVersion",
+          "lambda:UpdateAlias",
+          "lambda:GetAlias",
+        ],
+        resources: [
+          `arn:aws:lambda:${cdk.Stack.of(this).region}:${cdk.Stack.of(this).account}:function:chrisvouga-*`,
+        ],
+      }),
+    );
+
+    this.githubActionsRole.addToPolicy(
+      new iam.PolicyStatement({
+        sid: "ListStacksForCdk",
+        actions: ["cloudformation:DescribeStacks", "cloudformation:ListStacks"],
+        resources: ["*"],
+      }),
     );
 
     new cdk.CfnOutput(this, "GithubActionsRoleArn", {

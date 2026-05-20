@@ -1,8 +1,9 @@
 import * as cdk from "aws-cdk-lib";
 import * as ecr from "aws-cdk-lib/aws-ecr";
 import { Construct } from "constructs";
-import { getDeployableProjects } from "../../projects.js";
+import { getInfraTargets } from "../../projects.js";
 
+/** One ECR repository per deployable target (portfolio + every public project). */
 export class EcrStack extends cdk.Stack {
   public readonly repositories: Readonly<Record<string, ecr.Repository>>;
 
@@ -12,12 +13,12 @@ export class EcrStack extends cdk.Stack {
     const repos: Record<string, ecr.Repository> = {};
     const seen = new Set<string>();
 
-    for (const p of getDeployableProjects()) {
-      if (seen.has(p.id)) continue;
-      seen.add(p.id);
+    for (const target of getInfraTargets()) {
+      if (seen.has(target.id)) continue;
+      seen.add(target.id);
 
-      const repo = new ecr.Repository(this, `Ecr-${safeCfnId(p.id)}`, {
-        repositoryName: p.id,
+      const repo = new ecr.Repository(this, `Ecr-${safeCfnId(target.id)}`, {
+        repositoryName: target.id,
         imageScanOnPush: true,
         imageTagMutability: ecr.TagMutability.MUTABLE,
         removalPolicy: cdk.RemovalPolicy.RETAIN,
@@ -27,7 +28,7 @@ export class EcrStack extends cdk.Stack {
         maxImageCount: 5,
         rulePriority: 1,
       });
-      repos[p.id] = repo;
+      repos[target.id] = repo;
     }
 
     this.repositories = repos;
