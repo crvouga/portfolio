@@ -204,10 +204,9 @@ export const PROJECTS: readonly Project[] = [
     ],
     githubRepo: "crvouga/pickflix-v1",
     hostname: "pickflix.chrisvouga.dev",
-    port: 3000,
+    port: 9000,
     secrets: [
       "DATABASE_URL",
-      "PORT",
       "SECRET",
       "SEND_GRID_API_KEY",
       "SEND_GRID_REGISTERED_EMAIL_ADDRESS",
@@ -547,7 +546,7 @@ export const PROJECTS: readonly Project[] = [
     topics: ["go"],
     githubRepo: "crvouga/moviefinder.app-go",
     hostname: "moviefinder-app-go.chrisvouga.dev",
-    port: 80,
+    port: 8080,
     secrets: [
       "TMDB_API_READ_ACCESS_TOKEN",
       "TWILIO_ACCOUNT_SID",
@@ -569,7 +568,7 @@ export const PROJECTS: readonly Project[] = [
     topics: ["react", "typescript"],
     githubRepo: "crvouga/moviefinder.app-react",
     hostname: "moviefinder-app-react.chrisvouga.dev",
-    port: 80,
+    port: 3000,
     secrets: [
       "TMDB_API_READ_ACCESS_TOKEN",
       "TWILIO_ACCOUNT_SID",
@@ -591,7 +590,7 @@ export const PROJECTS: readonly Project[] = [
     topics: ["clojurescript"],
     githubRepo: "crvouga/moviefinder.app-clojurescript",
     hostname: "moviefinder-app-clojurescript.chrisvouga.dev",
-    port: 8888,
+    port: 9630,
     secrets: [
       "TMDB_API_READ_ACCESS_TOKEN",
       "TWILIO_ACCOUNT_SID",

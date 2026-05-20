@@ -20,15 +20,14 @@ export class MissingSecretsError extends Error {
 const STATIC_ENV_SPECS = {
   "pickflix": {"NODE_ENV":"production"},
   "moviefinder-app-rust": {"PORT":"80","STAGE":"production"},
-  "moviefinder-app-go": {"PORT":"80","STAGE":"production"},
-  "moviefinder-app-react": {"PORT":"80","STAGE":"production"},
-  "moviefinder-app-clojurescript": {"PORT":"8888"},
+  "moviefinder-app-go": {"PORT":"8080","STAGE":"production"},
+  "moviefinder-app-react": {"PORT":"3000","STAGE":"production"},
+  "moviefinder-app-clojurescript": {"PORT":"9630"},
 } as const;
 
 const SECRET_SPECS = {
   "pickflix": [
     { containerKey: "DATABASE_URL", binding: "PORTFOLIO_PICKFLIX__DATABASE_URL" },
-    { containerKey: "PORT", binding: "PORTFOLIO_PICKFLIX__PORT" },
     { containerKey: "SECRET", binding: "PORTFOLIO_PICKFLIX__SECRET" },
     { containerKey: "SEND_GRID_API_KEY", binding: "PORTFOLIO_PICKFLIX__SEND_GRID_API_KEY" },
     { containerKey: "SEND_GRID_REGISTERED_EMAIL_ADDRESS", binding: "PORTFOLIO_PICKFLIX__SEND_GRID_REGISTERED_EMAIL_ADDRESS" },
@@ -142,7 +141,6 @@ export interface Env {
   readonly PORTFOLIO_MOVIEFINDER_APP_CLOJURESCRIPT: DurableObjectNamespace<Portfolio_MoviefinderAppClojurescript>;
   readonly PORTFOLIO_SIMON_SAYS: DurableObjectNamespace<Portfolio_SimonSays>;
   readonly PORTFOLIO_PICKFLIX__DATABASE_URL: SecretsStoreSecret;
-  readonly PORTFOLIO_PICKFLIX__PORT: SecretsStoreSecret;
   readonly PORTFOLIO_PICKFLIX__SECRET: SecretsStoreSecret;
   readonly PORTFOLIO_PICKFLIX__SEND_GRID_API_KEY: SecretsStoreSecret;
   readonly PORTFOLIO_PICKFLIX__SEND_GRID_REGISTERED_EMAIL_ADDRESS: SecretsStoreSecret;
@@ -197,7 +195,7 @@ export class Portfolio_Portfolio extends PortfolioContainerBase {
 }
 
 export class Portfolio_Pickflix extends PortfolioContainerBase {
-  defaultPort = 3000;
+  defaultPort = 9000;
   private secretsLoad?: Promise<void>;
 
   async fetch(request: Request): Promise<Response> {
@@ -275,7 +273,7 @@ export class Portfolio_MoviefinderAppRust extends PortfolioContainerBase {
 }
 
 export class Portfolio_MoviefinderAppGo extends PortfolioContainerBase {
-  defaultPort = 80;
+  defaultPort = 8080;
   private secretsLoad?: Promise<void>;
 
   async fetch(request: Request): Promise<Response> {
@@ -290,7 +288,7 @@ export class Portfolio_MoviefinderAppGo extends PortfolioContainerBase {
 }
 
 export class Portfolio_MoviefinderAppReact extends PortfolioContainerBase {
-  defaultPort = 80;
+  defaultPort = 3000;
   private secretsLoad?: Promise<void>;
 
   async fetch(request: Request): Promise<Response> {
@@ -305,7 +303,7 @@ export class Portfolio_MoviefinderAppReact extends PortfolioContainerBase {
 }
 
 export class Portfolio_MoviefinderAppClojurescript extends PortfolioContainerBase {
-  defaultPort = 8888;
+  defaultPort = 9630;
   private secretsLoad?: Promise<void>;
 
   async fetch(request: Request): Promise<Response> {
