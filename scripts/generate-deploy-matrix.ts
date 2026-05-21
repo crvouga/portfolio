@@ -2,6 +2,11 @@
  * Emit a GitHub Actions matrix (JSON) of every infra target that needs a
  * container image built (ghcr.io) and deployed to Fly.io.
  *
+ * Build paths come from each project's `deploy.build` block in `projects.ts`:
+ *   - checkoutDir → "projects/<dir>" (defaults to repo basename)
+ *   - context     → "<checkout>/<context>" (defaults to "<checkout>")
+ *   - dockerfile  → "<context>/Dockerfile" by default
+ *
  * Used by `build-and-publish-images.yml` and `deploy-pipeline.yml` so the
  * project list never has to be hardcoded in YAML.
  *
@@ -28,8 +33,9 @@
  */
 import {
   flyAppName,
-  getDeployableProjects,
   PORTFOLIO_INFRA_TARGET,
+  getDeployableProjects,
+  type DeploySpec,
 } from "../projects.js";
 
 type MatrixInclude = {
@@ -43,31 +49,6 @@ type MatrixInclude = {
   readonly dockerfile: string;
   readonly image_repo: string;
 };
-
-const PER_PROJECT_DOCKER_CONTEXT: Record<string, { context: string; dockerfile: string }> = {
-  "headless-combobox-svelte-example": {
-    context: "projects/headless-combobox/example/svelte",
-    dockerfile: "projects/headless-combobox/example/svelte/Dockerfile",
-  },
-};
-
-const PER_PROJECT_REPO_PATH: Record<string, string> = {
-  pickflix: "pickflix-v1",
-  "todo-app": "todo-v1",
-  "anime-blog": "anime",
-};
-
-function checkoutPath(id: string, githubRepo: string): string {
-  const override = PER_PROJECT_REPO_PATH[id];
-  if (override) return `projects/${override}`;
-  return `projects/${githubRepo.split("/").pop()!}`;
-}
-
-function dockerContext(id: string, checkoutPathStr: string): { context: string; dockerfile: string } {
-  const override = PER_PROJECT_DOCKER_CONTEXT[id];
-  if (override) return override;
-  return { context: checkoutPathStr, dockerfile: `${checkoutPathStr}/Dockerfile` };
-}
 
 function parseArgs(argv: readonly string[]): { pretty: boolean; owner: string } {
   let pretty = false;
@@ -91,14 +72,47 @@ function imageRepoFor(owner: string, id: string): string {
   return `ghcr.io/${owner}/chrisvouga-${id}`;
 }
 
+function repoBasename(githubRepo: string): string {
+  return githubRepo.split("/").pop()!;
+}
+
+/**
+ * Resolve the build paths for a deployable project (the portfolio is handled
+ * separately because it builds in-place).
+ *
+ *   checkoutDir defaults to the repo basename
+ *   context     defaults to "."
+ *   dockerfile  defaults to "<context>/Dockerfile"
+ *
+ * All returned paths are relative to the workflow checkout root.
+ */
+function resolveBuildPaths(
+  deploy: DeploySpec,
+): { checkoutPath: string; buildContext: string; dockerfile: string } {
+  const checkoutDir = deploy.build?.checkoutDir ?? repoBasename(deploy.githubRepo);
+  const checkoutPath = `projects/${checkoutDir}`;
+
+  const relativeContext = deploy.build?.context ?? ".";
+  const buildContext =
+    relativeContext === "." ? checkoutPath : `${checkoutPath}/${relativeContext}`;
+
+  const dockerfile = deploy.build?.dockerfile
+    ? `${checkoutPath}/${deploy.build.dockerfile}`
+    : `${buildContext}/Dockerfile`;
+
+  return { checkoutPath, buildContext, dockerfile };
+}
+
 function toMatrixInclude(owner: string): readonly MatrixInclude[] {
   const includes: MatrixInclude[] = [];
 
+  // Portfolio is special: built from the repo root in-place, so checkout_path
+  // is "." and there is no remote repo to clone.
   includes.push({
     id: PORTFOLIO_INFRA_TARGET.id,
     fly_app: flyAppName(PORTFOLIO_INFRA_TARGET.id),
-    hostname: PORTFOLIO_INFRA_TARGET.hostname,
-    port: PORTFOLIO_INFRA_TARGET.port,
+    hostname: PORTFOLIO_INFRA_TARGET.deploy.hostname,
+    port: PORTFOLIO_INFRA_TARGET.deploy.port,
     checkout_repo: "",
     checkout_path: ".",
     build_context: ".",
@@ -107,16 +121,15 @@ function toMatrixInclude(owner: string): readonly MatrixInclude[] {
   });
 
   for (const project of getDeployableProjects()) {
-    const path = checkoutPath(project.id, project.githubRepo);
-    const { context, dockerfile } = dockerContext(project.id, path);
+    const { checkoutPath, buildContext, dockerfile } = resolveBuildPaths(project.deploy);
     includes.push({
       id: project.id,
       fly_app: flyAppName(project.id),
-      hostname: project.hostname,
-      port: project.port,
-      checkout_repo: project.githubRepo,
-      checkout_path: path,
-      build_context: context,
+      hostname: project.deploy.hostname,
+      port: project.deploy.port,
+      checkout_repo: project.deploy.githubRepo,
+      checkout_path: checkoutPath,
+      build_context: buildContext,
       dockerfile,
       image_repo: imageRepoFor(owner, project.id),
     });

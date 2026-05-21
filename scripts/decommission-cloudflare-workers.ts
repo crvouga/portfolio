@@ -193,12 +193,12 @@ function ok<T>(resp: CloudflareResponse<T>, label: string): T {
 
 const KNOWN_HOSTNAMES: ReadonlySet<string> = new Set<string>([
   "www.chrisvouga.dev",
-  ...getDeployableProjects().map((p) => p.hostname),
+  ...getDeployableProjects().map((p) => p.deploy.hostname),
 ]);
 
 const KNOWN_SECRET_NAMES: ReadonlySet<string> = new Set<string>(
   getDeployableProjects().flatMap((p) =>
-    (p.secrets ?? []).map((secret) => secretBindingName(p.id, secret)),
+    (p.deploy.secrets ?? []).map((spec) => secretBindingName(p.id, spec.name)),
   ),
 );
 

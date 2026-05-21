@@ -5,34 +5,73 @@
  * names start with `chrisvouga-` are considered (we never touch unrelated
  * Fly apps in the same org).
  *
+ * Safety cap:
+ *   `--max-destroys <n>` limits how many orphans this run will destroy. The
+ *   deploy pipeline sets a low default (1) so a single bad PR can't wipe out
+ *   the whole org. Set `--force` (or pass a higher cap) to bypass.
+ *
+ * CI integration:
+ *   `--json` switches output to one JSON object per line, suitable for
+ *   piping into `jq` or summarizing in a workflow step:
+ *
+ *     {"event":"plan","total":16,"orphans":["chrisvouga-foo","..."]}
+ *     {"event":"destroyed","name":"chrisvouga-foo"}
+ *     {"event":"summary","destroyed":1,"skipped":2,"errors":0}
+ *
  * Usage:
- *   bun run scripts/fly/teardown-apps.ts                # plan
- *   bun run scripts/fly/teardown-apps.ts --apply        # destroy
- *   bun run scripts/fly/teardown-apps.ts --org my-org   # override org
+ *   bun run scripts/fly/teardown-apps.ts                           # plan
+ *   bun run scripts/fly/teardown-apps.ts --apply                   # destroy
+ *   bun run scripts/fly/teardown-apps.ts --apply --max-destroys 1  # cap
+ *   bun run scripts/fly/teardown-apps.ts --apply --force           # ignore cap
+ *   bun run scripts/fly/teardown-apps.ts --org my-org              # override org
+ *   bun run scripts/fly/teardown-apps.ts --json                    # CI output
  */
 import { ensureFlyAuth, flyctl, flyctlJson } from "../lib/flyctl.js";
 import { buildDeployTargets } from "../lib/project-targets.js";
 
 const REPO_PREFIX = "chrisvouga-";
 
-type Args = { readonly apply: boolean; readonly org?: string };
+type Args = {
+  readonly apply: boolean;
+  readonly org?: string;
+  readonly maxDestroys: number;
+  readonly force: boolean;
+  readonly json: boolean;
+};
 
 function parseArgs(argv: readonly string[]): Args {
   let apply = false;
   let org: string | undefined = process.env["FLY_ORG"]?.trim() || undefined;
+  let maxDestroys = Number.POSITIVE_INFINITY;
+  let force = false;
+  let json = false;
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     if (arg === "--apply") apply = true;
     else if (arg === "--org") org = argv[++i];
+    else if (arg === "--max-destroys") {
+      const raw = argv[++i] ?? "";
+      const n = Number(raw);
+      if (!Number.isFinite(n) || n < 0) {
+        console.error(`--max-destroys expects a non-negative number, got "${raw}"`);
+        process.exit(2);
+      }
+      maxDestroys = n;
+    } else if (arg === "--force") force = true;
+    else if (arg === "--json") json = true;
     else if (arg === "--help" || arg === "-h") {
-      console.log("Usage: bun run scripts/fly/teardown-apps.ts [--apply] [--org <slug>]");
+      console.log(
+        "Usage: bun run scripts/fly/teardown-apps.ts " +
+          "[--apply] [--org <slug>] [--max-destroys <n>] [--force] [--json]",
+      );
       process.exit(0);
     } else {
       console.error(`Unknown argument: ${arg}`);
       process.exit(2);
     }
   }
-  return org !== undefined ? { apply, org } : { apply };
+  const base = { apply, maxDestroys, force, json };
+  return org !== undefined ? { ...base, org } : base;
 }
 
 type FlyAppListEntry = {
@@ -41,6 +80,53 @@ type FlyAppListEntry = {
   readonly Organization?: { Slug?: string };
   readonly organization?: { slug?: string };
 };
+
+type LogEvent =
+  | { readonly event: "plan"; readonly total: number; readonly orphans: readonly string[] }
+  | { readonly event: "would-destroy"; readonly name: string }
+  | { readonly event: "destroyed"; readonly name: string }
+  | { readonly event: "skipped"; readonly name: string; readonly reason: string }
+  | { readonly event: "error"; readonly name: string; readonly message: string }
+  | {
+      readonly event: "summary";
+      readonly destroyed: number;
+      readonly skipped: number;
+      readonly errors: number;
+      readonly mode: "dry-run" | "apply";
+    };
+
+function emit(args: Args, ev: LogEvent): void {
+  if (args.json) {
+    console.log(JSON.stringify(ev));
+    return;
+  }
+  switch (ev.event) {
+    case "plan":
+      console.log(
+        `Teardown Fly apps (${args.apply ? "APPLY" : "DRY-RUN"}) — total=${ev.total}, ` +
+          `prefix='${REPO_PREFIX}', orphans=${ev.orphans.length}, ` +
+          `cap=${args.force ? "force" : args.maxDestroys}`,
+      );
+      return;
+    case "would-destroy":
+      console.log(`  would destroy: ${ev.name}`);
+      return;
+    case "destroyed":
+      console.log(`  destroyed: ${ev.name}`);
+      return;
+    case "skipped":
+      console.log(`  skipped (${ev.reason}): ${ev.name}`);
+      return;
+    case "error":
+      console.error(`  error destroying ${ev.name}: ${ev.message}`);
+      return;
+    case "summary":
+      console.log(
+        `\nSummary (${ev.mode}): destroyed=${ev.destroyed}, skipped=${ev.skipped}, errors=${ev.errors}`,
+      );
+      return;
+  }
+}
 
 function main(): void {
   const args = parseArgs(process.argv.slice(2));
@@ -57,19 +143,54 @@ function main(): void {
     if (known.has(name)) continue;
     orphans.push(name);
   }
+  orphans.sort();
 
-  console.log(
-    `Teardown Fly apps (${args.apply ? "APPLY" : "DRY-RUN"}) — total=${apps.length}, ` +
-      `prefix='${REPO_PREFIX}', orphans=${orphans.length}`,
-  );
+  emit(args, { event: "plan", total: apps.length, orphans });
+
+  const cap = args.force ? Number.POSITIVE_INFINITY : args.maxDestroys;
+  let destroyed = 0;
+  let skipped = 0;
+  let errors = 0;
+
   for (const name of orphans) {
     if (!args.apply) {
-      console.log(`  would destroy: ${name}`);
+      emit(args, { event: "would-destroy", name });
       continue;
     }
-    flyctl(["apps", "destroy", name, "--yes"]);
-    console.log(`  destroyed: ${name}`);
+    if (destroyed >= cap) {
+      skipped += 1;
+      emit(args, {
+        event: "skipped",
+        name,
+        reason: `max-destroys=${args.maxDestroys} reached; pass --force or raise the cap`,
+      });
+      continue;
+    }
+    try {
+      flyctl(["apps", "destroy", name, "--yes"]);
+      destroyed += 1;
+      emit(args, { event: "destroyed", name });
+    } catch (err) {
+      errors += 1;
+      emit(args, {
+        event: "error",
+        name,
+        message: err instanceof Error ? err.message : String(err),
+      });
+    }
   }
+
+  emit(args, {
+    event: "summary",
+    destroyed,
+    skipped,
+    errors,
+    mode: args.apply ? "apply" : "dry-run",
+  });
+
+  if (errors > 0) process.exit(1);
+  // Loud non-zero exit when the cap blocked work so CI can fail the job.
+  if (skipped > 0) process.exit(2);
 }
 
 main();

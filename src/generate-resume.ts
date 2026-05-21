@@ -21,7 +21,7 @@ import { PDFDocument } from "pdf-lib";
 
 import { CONTENT } from "./content/content";
 import { TOPIC_TO_NAME, type Topic } from "./content/topic";
-import { projectToLinkHref } from "./content/project";
+import { projectToLinkHref, type Project as PortfolioProject } from "./content/project";
 import { formatPhoneNumber } from "./library/phone-number";
 import { RESUME_FILENAME } from "./constants/resume";
 
@@ -217,21 +217,27 @@ function buildResumeContent(): ResumeContent {
     url: work.infoUrl ?? null,
   }));
 
-  const excludedProjects = new Set([
-    "Airr Product Demo",
-    "Courier Company Website",
-    "Orchard",
-    "ASU Earned Admissions",
-  ]);
-
-  // Skip projects whose title matches a work company name — those would
-  // duplicate the same blurb that already appears in Experience.
+  // Resume curation is declarative — every project carries an optional
+  // `resume?: { include?, priority? }` block in `projects.ts`. We only need
+  // two universal rules here:
+  //   1. include === false  → never on the resume
+  //   2. title matches a WORK[].name → drop (would duplicate the experience blurb)
+  //   3. projectToLinkHref(p) === null → drop (no public link to render)
+  // Everything else is sorted by priority desc (default 0), declaration order
+  // tie-breaks. WORK_PROJECTS get a default boost so side projects without an
+  // explicit pin don't displace them.
   const workCompanyNames = new Set(CONTENT.WORK.map((w) => w.name.toLowerCase()));
-  const filteredWorkProjects = CONTENT.WORK_PROJECTS.filter(
-    (p) => !excludedProjects.has(p.title) && !workCompanyNames.has(p.title.toLowerCase()),
-  );
-  const normalizerApp = CONTENT.SIDE_PROJECTS.find((p) => p.title === "normalizer.app");
-  const orderedProjects = normalizerApp ? [normalizerApp, ...filteredWorkProjects] : [...filteredWorkProjects];
+  const visibleOnResume = (p: PortfolioProject): boolean =>
+    p.resume?.include !== false &&
+    projectToLinkHref(p) !== null &&
+    !workCompanyNames.has(p.title.toLowerCase());
+
+  const resumePriority = (p: PortfolioProject): number =>
+    p.resume?.priority ?? (p.setting === "work" ? 1 : 0);
+
+  const orderedProjects = CONTENT.PROJECTS.filter(visibleOnResume)
+    .slice() // don't mutate the readonly source array
+    .sort((a, b) => resumePriority(b) - resumePriority(a));
 
   const projects: Project[] = orderedProjects.slice(0, 5).map((project) => ({
     title: project.title,
