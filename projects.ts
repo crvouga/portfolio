@@ -265,20 +265,6 @@ export const PROJECTS: readonly Project[] = [
     port: 80,
   },
   {
-    id: "moviefinder-app",
-    title: "moviefinder.app",
-    setting: "side",
-    deployment: { t: "public", url: "https://www.moviefinder.app/" },
-    code: { t: "public", url: "https://github.com/crvouga/moviefinder.app" },
-    description:
-      "Movie discovery application featuring an intuitive TikTok-style vertical scrolling interface. Built with Rust for performance and modern web technologies for a seamless user experience.",
-    imageAlt: IMAGE_ALT,
-    imageSrc: ["/moviefinder-app-screenshot.optimized.webp"],
-    galleryImageSrc: ["/moviefinder-app-screenshot.png"],
-    topics: ["rust", "tailwind", "postgres", "datastar"],
-  },
-
-  {
     id: "todo-app",
     title: "Fullstack Todo App",
     setting: "side",
