@@ -1,52 +1,30 @@
 import { tag, text } from "../../library/html/index";
 import type { View } from "../../library/html/index";
 import { HEAD } from "../../ui/head";
-import { unit, THEME } from "../../ui/theme";
-import { viewHeadingContact } from "./contact";
-import { viewHeadingSectionText } from "./text/index";
+import { viewHeroCtas } from "./ctas";
+import { viewHeroEyebrow } from "./eyebrow";
+import { viewHeroName } from "./name";
 
 export const viewHeadingSection: View = () => {
-  return tag(
-    "header",
-    {
-      class: "header",
-    },
-    [viewHeadingSectionText(), viewHeadingContact({})()]
-  );
+  return tag("header", { class: "hero", id: "hero" }, [
+    viewHeroEyebrow(),
+    viewHeroName(),
+    viewHeroCtas(),
+  ]);
 };
 
 HEAD.push(
   tag("style", {}, [
     text(`
-    .header {
-      display: flex;
-      justify-content: space-between;
-      max-width: 100%;
-      flex-direction: column;
-      gap: ${unit(4)};
-    }
-
-    @media (max-width: ${THEME.breakpoints.xs}) {
-      .header {
+      .hero {
+        display: flex;
         flex-direction: column;
+        gap: 20px;
         align-items: flex-start;
-        gap: ${unit(2)};
       }
-    }
-
-    @media (min-width: ${THEME.breakpoints.sm}) {
-      .header {
-        flex-direction: row;
-        align-items: flex-end;
-        gap: ${unit(2)};
+      .hero .hero-name {
+        margin: -4px 0 0;
       }
-    }
-
-    @media (min-width: ${THEME.breakpoints.md}) {
-      .header {
-        gap: ${unit(4)};
-      }
-    }
     `),
   ])
 );

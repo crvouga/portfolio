@@ -1,6 +1,7 @@
 import { mkdir, writeFile } from "fs/promises";
 import { join } from "path";
 import { viewApp } from "./app";
+import { copyFontFiles } from "./build/copy-fonts";
 import { copyDirectory, deleteDirectory } from "./library/file-system";
 import { render } from "./library/html/render";
 
@@ -17,6 +18,7 @@ export const main = async (): Promise<void> => {
   const indexPath = join(DIST_PATH, "index.html");
   await writeFile(indexPath, html, "utf8");
   await copyDirectory(PUBLIC_PATH, DIST_PATH);
+  await copyFontFiles(DIST_PATH);
   const end = Date.now();
   const seconds = ((end - start) / 1000).toFixed(2);
   console.log(`Built in ${seconds} seconds`);

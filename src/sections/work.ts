@@ -5,9 +5,11 @@ import { viewWorkCard } from "../shared/work-card";
 import { viewGridCollapsible } from "../ui/grid-collapsible";
 
 export const viewWorkSection: View = () => {
+  const section = CONTENT.GET_SECTION("work");
   return viewSection({
-    title: CONTENT.WORK_SECTION_TITLE,
-  })({}, [
+    title: section.title,
+    number: section.number,
+  })({ id: section.id }, [
     viewGridCollapsible({
       children: CONTENT.WORK.map((work, index) =>
         viewWorkCard({

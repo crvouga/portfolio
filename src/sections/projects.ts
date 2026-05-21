@@ -4,11 +4,13 @@ import { viewProjectCard } from "../shared/project-card/index";
 import { viewSection } from "../shared/section";
 import { viewGridCollapsible } from "../ui/grid-collapsible";
 
-export const viewProjectsSection: View = (a, _) => {
+export const viewProjectsSection: View = (a) => {
   const N = 3;
+  const section = CONTENT.GET_SECTION("projects");
   return viewSection({
-    title: CONTENT.PROJECT_SECTION_TITLE,
-  })(a, [
+    title: section.title,
+    number: section.number,
+  })({ ...a, id: section.id }, [
     viewGridCollapsible({
       maxVisibleCardCount: 6,
       children: [

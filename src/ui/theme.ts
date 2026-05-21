@@ -1,51 +1,89 @@
+const accent = "#7FB3FF";
+const accentStrong = "#4C8DE8";
+const accentDeep = "#1E5BAF";
+const accentGlow = "rgba(127, 179, 255, 0.18)";
+const accentSoft = "rgba(127, 179, 255, 0.12)";
+
+const background = "#0A0A0B";
+const paper = "#101013";
+const paperBorder = "#1F1F25";
+const paperBorderHover = "#2E2E36";
+
+const text = "#F2F4F8";
+const textMuted = "#A3ABBA";
+const textSubtle = "#727A88";
+
 export const THEME = {
   colors: {
-    background: "#000",
-    text: "#F0F4F8",
-    neutralMuted: "rgb(159, 166, 173)",
-    paper: "#0B0D0E",
-    paperBorder: "#32383e",
-    neutral: "#CDD7E1",
-    borderLight: "#32383e",
-    skeleton: "#2D333B",
+    background,
+    paper,
+    paperBorder,
+    paperBorderHover,
+    text,
+    neutral: text,
+    neutralMuted: textMuted,
+    textMuted,
+    textSubtle,
+    borderLight: paperBorder,
+    skeleton: "#1A1A1F",
     warning: "#EA9A3E",
-    primary100: "rgb(223, 240, 252)",   // Very light variant
-    primary200: "rgb(197, 227, 248)",   // Lighter than 300
-    primary300: "rgb(151, 195, 240)",   // Base light
-    primary400: "rgb(84, 154, 220)",    // In between 300 and 500
-    primary500: "rgb(11, 107, 203)",    // Base dark
-    primary600: "rgb(10, 87, 160)",     // Darker than 500
-    primary700: "rgb(9, 65, 119)",      // Even darker
+    success: "#3FB950",
     //
-    softBackground: "rgb(10, 39, 68)",
-    softBackgroundHover: "rgb(18, 70, 123)",
-    softBackgroundActive: "rgb(24, 94, 165)",
-    softBackgroundDisabled: "rgb(23, 26, 28)",
-    softText: "rgb(199, 223, 247)",
-    softTextHover: "rgb(199, 223, 247)",
-    softTextActive: "rgb(227, 239, 251)",
-    softTextDisabled: "rgb(99, 107, 116)",
+    accent,
+    accentStrong,
+    accentDeep,
+    accentGlow,
+    accentSoft,
+    //
+    primary100: "rgb(223, 240, 252)",
+    primary200: "rgb(197, 227, 248)",
+    primary300: accent,
+    primary400: accentStrong,
+    primary500: accentStrong,
+    primary600: accentDeep,
+    primary700: accentDeep,
+    //
+    softBackground: accentSoft,
+    softBackgroundHover: "rgba(127, 179, 255, 0.18)",
+    softBackgroundActive: "rgba(127, 179, 255, 0.24)",
+    softBackgroundDisabled: "rgba(127, 179, 255, 0.06)",
+    softText: accent,
+    softTextHover: "#A6CBFF",
+    softTextActive: "#C8DEFF",
+    softTextDisabled: textSubtle,
     //
     plainBackground: "transparent",
-    plainBackgroundHover: "rgb(10, 39, 68)",
-    plainBackgroundActive: "rgb(18, 70, 123)",
-    plainText: "rgb(151, 195, 240)",
-    plainTextHover: "rgb(199, 223, 247)",
-    plainTextActive: "rgb(227, 239, 251)",
-    plainTextDisabled: "rgb(99, 107, 116)",
+    plainBackgroundHover: accentSoft,
+    plainBackgroundActive: "rgba(127, 179, 255, 0.18)",
+    plainText: accent,
+    plainTextHover: "#A6CBFF",
+    plainTextActive: "#C8DEFF",
+    plainTextDisabled: textSubtle,
     //
-    containedBackground: "rgb(11, 107, 203)",
-    containedBackgroundHover: "rgb(18, 70, 123)",
-    containedBackgroundActive: "rgb(18, 70, 123)",
-    containedText: "rgb(255, 255, 255)",
-    containedTextHover: "rgb(255, 255, 255)",
-    containedTextActive: "rgb(255, 255, 255)",
-    containedTextDisabled: "rgb(99, 107, 116)",
+    containedBackground: accentDeep,
+    containedBackgroundHover: accentStrong,
+    containedBackgroundActive: "#174C95",
+    containedText: "#FFFFFF",
+    containedTextHover: "#FFFFFF",
+    containedTextActive: "#FFFFFF",
+    containedTextDisabled: textSubtle,
   },
   breakpoints: {
     xs: "0px",
     sm: "600px",
     md: "900px",
+    lg: "1100px",
+  },
+  radius: {
+    sm: "6px",
+    md: "10px",
+    lg: "14px",
+    pill: "999px",
+  },
+  motion: {
+    fast: "150ms",
+    med: "220ms",
+    ease: "cubic-bezier(0.2, 0.8, 0.2, 1)",
   },
 };
 

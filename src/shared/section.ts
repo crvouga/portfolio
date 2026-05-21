@@ -1,13 +1,17 @@
 import { type View, tag, text } from "../library/html/index";
 import { HEAD } from "../ui/head";
-import { viewSectionTitle } from "./section-title";
+import { viewSectionTitle } from "./section-title/index";
 
-export const viewSection = (props: { title: string; subtitle?: string }): View => (attr, c) => {
+export const viewSection = (props: {
+  title: string;
+  subtitle?: string;
+  number?: string;
+}): View => (attr, c) => {
   return tag(
     "section",
     {
       ...attr,
-      class: "section",
+      class: ["section", attr?.["class"]].filter(Boolean).join(" "),
     },
     [viewSectionTitle(props)(), ...(c ?? [])]
   );
@@ -16,12 +20,13 @@ export const viewSection = (props: { title: string; subtitle?: string }): View =
 HEAD.push(
   tag("style", {}, [
     text(`
-    .section {
-      width: 100%;
-      display: flex;
-      flex-direction: column;
-      gap: 24px;
-    }
-  `),
+      .section {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        gap: 32px;
+        scroll-margin-top: 96px;
+      }
+    `),
   ])
 );

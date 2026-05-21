@@ -52,11 +52,12 @@ const toClassName = (props: Props): string => {
 
 export const viewButton: ViewWithProps<Props> = (props) => (attrs, children) => {
   const tagName = toTag(props);
+  const baseClass = toClassName(props);
+  const extraClass = typeof attrs?.["class"] === "string" ? (attrs["class"] as string) : "";
 
   return tag(
     tagName,
     {
-      class: toClassName(props),
       ...(props.disabled
         ? {
             disabled: "true",
@@ -65,6 +66,7 @@ export const viewButton: ViewWithProps<Props> = (props) => (attrs, children) => 
           }
         : {}),
       ...attrs,
+      class: extraClass ? `${baseClass} ${extraClass}` : baseClass,
     },
     [
       ...(props.startDecorator
@@ -84,9 +86,15 @@ export const viewButtonStyles: ViewWithProps<Record<string, never>> = (_props) =
   return tag("style", {}, [
     text(`
       .btn {
+        font-family: var(--font-mono);
+        font-weight: 500;
+        letter-spacing: 0.01em;
         user-select: none;
-        transition: background-color 0.2s, color 0.2s;
-        display: flex;
+        transition:
+          background-color var(--motion-fast) var(--motion-ease),
+          color var(--motion-fast) var(--motion-ease),
+          border-color var(--motion-fast) var(--motion-ease);
+        display: inline-flex;
         align-items: center;
         justify-content: center;
         margin: 0;
@@ -95,138 +103,143 @@ export const viewButtonStyles: ViewWithProps<Record<string, never>> = (_props) =
         white-space: nowrap;
         text-overflow: ellipsis;
         overflow: hidden;
-        border: none;
+        border: 1px solid transparent;
         outline: none;
       }
 
       .btn:focus-visible {
-        outline: 2px solid ${THEME.colors.softText};
+        outline: 2px solid ${THEME.colors.accent};
         outline-offset: 2px;
       }
 
       .btn-sm {
-        padding: 6px 16px;
-        font-size: 14px;
-        line-height: 21px;
-        border-radius: 3.5px;
+        padding: 6px 14px;
+        font-size: 13px;
+        line-height: 20px;
+        border-radius: var(--radius-md);
       }
-
-      .btn-start-decorator  {
-        flex-shrink: 0;
-        margin-right: 8px;
-        margin-left: -4px;
-      }
-
-      .btn-sm > .btn-start-decorator {
-        width: 20px;
-        height: 20px;
-      }
-
       .btn-lg {
-        padding: 12px 24px;
+        padding: 11px 22px;
+        font-size: 15px;
+        line-height: 22px;
+        border-radius: var(--radius-md);
+      }
+      .btn-xl {
+        padding: 14px 26px;
         font-size: 16px;
         line-height: 24px;
-        border-radius: 6px;
+        border-radius: var(--radius-md);
       }
 
-      .btn-lg > .btn-start-decorator {
-        width: 24px;
-        height: 24px;
+      .btn-start-decorator {
+        flex-shrink: 0;
+        margin-right: 8px;
+        margin-left: -2px;
+        color: inherit;
       }
-
-      .btn-xl {
-        padding: 14px 28px;
-        font-size: 18px;
-        line-height: 26px;
-        border-radius: 8px;
+      .btn-start-decorator svg {
+        display: block;
+        width: 100%;
+        height: 100%;
+        color: inherit;
       }
-
-      .btn-xl > .btn-start-decorator {
-        width: 28px;
-        height: 28px;
-      }
+      .btn-sm > .btn-start-decorator { width: 16px; height: 16px; }
+      .btn-lg > .btn-start-decorator { width: 18px; height: 18px; }
+      .btn-xl > .btn-start-decorator { width: 20px; height: 20px; }
 
       .btn.btn-disabled {
         cursor: not-allowed;
-        pointer-events: none; 
+        pointer-events: none;
+        opacity: 0.5;
       }
 
-      .btn-soft {
+      .btn-soft,
+      a.btn-soft,
+      a.btn-soft:visited,
+      a.btn-soft:hover,
+      a.btn-soft:active,
+      a.btn-soft:focus {
         background-color: ${THEME.colors.softBackground};
         color: ${THEME.colors.softText};
-        fill: ${THEME.colors.softText};
+        border-color: rgba(127, 179, 255, 0.18);
       }
-
-      .btn-soft.btn-disabled {
-        background-color: ${THEME.colors.softBackgroundDisabled};
-        color: ${THEME.colors.softTextDisabled};
-        fill: ${THEME.colors.softTextDisabled};
-      }
-
-      .btn-soft:hover {
+      .btn-soft:hover,
+      a.btn-soft:hover {
         background-color: ${THEME.colors.softBackgroundHover};
         color: ${THEME.colors.softTextHover};
-        fill: ${THEME.colors.softTextHover};
+        border-color: ${THEME.colors.accent};
       }
-
-      .btn-soft:active {
+      .btn-soft:active,
+      a.btn-soft:active {
         background-color: ${THEME.colors.softBackgroundActive};
         color: ${THEME.colors.softTextActive};
-        fill: ${THEME.colors.softTextActive};
       }
 
-      .btn-plain {
+      .btn-plain,
+      a.btn-plain,
+      a.btn-plain:visited,
+      a.btn-plain:hover,
+      a.btn-plain:active,
+      a.btn-plain:focus {
         background-color: ${THEME.colors.plainBackground};
         color: ${THEME.colors.plainText};
-        fill: ${THEME.colors.plainText};
       }
-
-      .btn-plain.btn-disabled {
-        background-color: ${THEME.colors.plainBackground};
-        color: ${THEME.colors.plainTextDisabled};
-        fill: ${THEME.colors.plainTextDisabled};
-      }
-
-      .btn-plain:hover {
+      .btn-plain:hover,
+      a.btn-plain:hover {
         background-color: ${THEME.colors.plainBackgroundHover};
         color: ${THEME.colors.plainTextHover};
-        fill: ${THEME.colors.plainTextHover};
       }
-
-      .btn-plain:active {
+      .btn-plain:active,
+      a.btn-plain:active {
         background-color: ${THEME.colors.plainBackgroundActive};
         color: ${THEME.colors.plainTextActive};
-        fill: ${THEME.colors.plainTextActive};
       }
 
-
-
-
-      .btn-contained {
+      .btn-contained,
+      a.btn-contained,
+      a.btn-contained:visited,
+      a.btn-contained:hover,
+      a.btn-contained:active,
+      a.btn-contained:focus,
+      button.btn-contained,
+      button.btn-contained:hover,
+      button.btn-contained:active,
+      button.btn-contained:focus {
         background-color: ${THEME.colors.containedBackground};
         color: ${THEME.colors.containedText};
-        fill: ${THEME.colors.containedText};
+        font-weight: 600;
       }
-
-      .btn-contained.btn-disabled {
-        background-color: ${THEME.colors.containedBackground};
-        color: ${THEME.colors.containedTextDisabled};
-        fill: ${THEME.colors.containedTextDisabled};
-      }
-
-      .btn-contained:hover {
+      .btn-contained:hover,
+      a.btn-contained:hover,
+      button.btn-contained:hover {
         background-color: ${THEME.colors.containedBackgroundHover};
         color: ${THEME.colors.containedTextHover};
-        fill: ${THEME.colors.containedTextHover};
       }
-
-      .btn-contained:active {
+      .btn-contained:active,
+      a.btn-contained:active,
+      button.btn-contained:active {
         background-color: ${THEME.colors.containedBackgroundActive};
         color: ${THEME.colors.containedTextActive};
-        fill: ${THEME.colors.containedTextActive};
       }
 
+      .btn .btn-start-decorator svg {
+        fill: currentColor;
+      }
+      .btn .btn-start-decorator svg path[stroke] {
+        fill: none;
+        stroke: currentColor;
+      }
 
+      .btn-soft.btn-disabled,
+      a.btn-soft.btn-disabled,
+      a.btn-soft.btn-disabled:visited {
+        color: ${THEME.colors.softTextDisabled};
+      }
+      .btn-plain.btn-disabled,
+      a.btn-plain.btn-disabled,
+      a.btn-plain.btn-disabled:visited {
+        color: ${THEME.colors.plainTextDisabled};
+      }
     `),
   ]);
 };

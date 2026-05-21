@@ -16,6 +16,6 @@ export const ABOUT_YOUTUBE_VIDEO_ID = "7rHHSdnvX94";
 export const ABOUT_YOUTUBE_EMBED_URL = `https://www.youtube.com/embed/${ABOUT_YOUTUBE_VIDEO_ID}`;
 export const ABOUT_YOUTUBE_VIDEO_TITLE = "Cursor AI gift video";
 export const ABOUT_CURSOR_GIFT_TEXT =
-  "I was recognized by Cursor AI as one of their top tab users, receiving a custom tab button as a gift.";
+  "Recognized by Cursor as one of their top tab users, with a custom tab button shipped as a gift.";
 export const ABOUT_GITHUB_HEATMAP_TEXT =
   "GitHub contribution heatmap showcasing consistent coding activity and engagement over the past year. Each square represents a day, with darker colors indicating higher contribution levels, demonstrating dedication to continuous learning and development.";

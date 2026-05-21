@@ -1,24 +1,31 @@
 import { CONTENT } from "./content/content";
 import { tag, text, type Attrs, type Html, type View } from "./library/html/index";
 import { replaceAll } from "./library/replace-all";
-import { viewAboutMeSection } from "./sections/about-me";
-import { viewFooterSection } from "./sections/footer";
+import { viewAboutMeSection } from "./sections/about-me/index";
+import { viewContactSection } from "./sections/contact/index";
+import { viewFooterSection } from "./sections/footer/index";
 import { viewHeadingSection } from "./sections/heading/index";
+import { viewNavSection } from "./sections/nav/index";
 import { viewProjectsSection } from "./sections/projects";
 import { viewSchoolSection } from "./sections/school";
 import { viewWorkSection } from "./sections/work";
+import { viewBackdrop } from "./ui/backdrop";
+import "./ui/fonts";
+import "./ui/globals";
 import { HEAD } from "./ui/head";
-import { THEME } from "./ui/theme";
 import { viewImage } from "./ui/image";
+import { THEME } from "./ui/theme";
 
 export const viewApp = (): Html => {
   return viewDoc({}, [
-    tag("main", { class: "main" }, [
+    viewNavSection(),
+    tag("main", { class: "main", id: "top" }, [
       viewHeadingSection(),
       viewWorkSection(),
       viewProjectsSection(),
       viewAboutMeSection(),
       viewSchoolSection(),
+      viewContactSection(),
     ]),
     viewFooterSection(),
   ]);
@@ -27,17 +34,41 @@ export const viewApp = (): Html => {
 HEAD.push(
   tag("style", {}, [
     text(`
-    .main {
-      max-width: 1150px;      
-      margin: auto;
-      display: flex;
-      align-items: items-center;
-      flex-direction: column;
-      gap: 96px;
-      padding: 72px 12px;
-      overflow-x: hidden;
-    }
-  `),
+      :root {
+        --page-max: 1100px;
+        --page-pad: 24px;
+      }
+
+      .main {
+        max-width: calc(var(--page-max) + var(--page-pad) * 2);
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        gap: 128px;
+        padding: 128px var(--page-pad) 96px;
+        overflow-x: hidden;
+      }
+
+      @media (max-width: 900px) {
+        :root {
+          --page-pad: 20px;
+        }
+        .main {
+          gap: 96px;
+          padding: 112px var(--page-pad) 72px;
+        }
+      }
+
+      @media (max-width: 600px) {
+        :root {
+          --page-pad: 16px;
+        }
+        .main {
+          gap: 80px;
+          padding: 96px var(--page-pad) 64px;
+        }
+      }
+    `),
   ])
 );
 
@@ -66,13 +97,9 @@ export const viewDoc: View = (_a?: Attrs, c?: Html[]) => {
         },
         []
       ),
-      // Open Graph meta tags
       tag(
         "meta",
-        {
-          property: "og:title",
-          content: CONTENT.META_TITLE,
-        },
+        { property: "og:title", content: CONTENT.META_TITLE },
         []
       ),
       tag(
@@ -97,43 +124,27 @@ export const viewDoc: View = (_a?: Attrs, c?: Html[]) => {
       ),
       tag(
         "meta",
-        {
-          property: "og:url",
-          content: CONTENT.SITE_URL,
-        },
+        { property: "og:url", content: CONTENT.SITE_URL },
         []
       ),
       tag(
         "meta",
-        {
-          property: "og:type",
-          content: "website",
-        },
+        { property: "og:type", content: "website" },
         []
       ),
       tag(
         "meta",
-        {
-          property: "og:site_name",
-          content: CONTENT.PAGE_TITLE,
-        },
-        []
-      ),
-      // Twitter Card meta tags
-      tag(
-        "meta",
-        {
-          name: "twitter:card",
-          content: "summary_large_image",
-        },
+        { property: "og:site_name", content: CONTENT.PAGE_TITLE },
         []
       ),
       tag(
         "meta",
-        {
-          name: "twitter:title",
-          content: CONTENT.META_TITLE,
-        },
+        { name: "twitter:card", content: "summary_large_image" },
+        []
+      ),
+      tag(
+        "meta",
+        { name: "twitter:title", content: CONTENT.META_TITLE },
         []
       ),
       tag(
@@ -160,31 +171,23 @@ export const viewDoc: View = (_a?: Attrs, c?: Html[]) => {
       tag("link", { rel: "icon", href: "/favicon.ico" }, []),
       tag(
         "script",
-        {
-          src: "./web-components/toaster-element.js",
-          async: "true",
-        },
+        { src: "./web-components/toaster-element.js", async: "true" },
         []
       ),
       tag(
         "script",
-        {
-          src: "./web-components/loading-spinner-element.js",
-          async: "true",
-        },
+        { src: "./web-components/loading-spinner-element.js", async: "true" },
         []
       ),
       tag(
         "script",
-        {
-          src: "./web-components/image-gallery-modal-element.js",
-          async: "true",
-        },
+        { src: "./web-components/image-gallery-modal-element.js", async: "true" },
         []
       ),
       ...HEAD,
     ]),
     tag("body", {}, [
+      viewBackdrop(),
       tag(
         "toaster-element",
         {
@@ -195,80 +198,14 @@ export const viewDoc: View = (_a?: Attrs, c?: Html[]) => {
         },
         []
       ),
-      // Main site screenshot - first visible image for crawlers
-      tag("div", { class: "main-site-screenshot-container" }, [
+      tag("div", { class: "visually-hidden" }, [
         viewImage({
           src: "/main-site-screenshot.png",
           alt: `${CONTENT.PAGE_TITLE} - ${CONTENT.PAGE_SUBTITLE} portfolio website screenshot`,
           fetchPriority: "high",
-        })({ class: "main-site-screenshot" }, []),
+        })({}, []),
       ]),
-
       ...(c ?? []),
     ]),
   ]);
 };
-
-HEAD.push(
-  tag("style", {}, [
-    text(`
-    * { 
-      font-family: -apple-system, "system-ui", "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol"; 
-      color: ${THEME.colors.text};
-      touch-action: manipulation !important; /* Prevents double-tap to zoom */
-    }
-    html {
-      overflow-y: scroll; /* Always reserve scrollbar space to prevent layout shifts */
-    }
-
-    body {
-      margin: 0;
-      padding: 0;
-      background-color: ${THEME.colors.background};
-      overflow-x: hidden;
-      overflow-y: auto;
-    }
-    
-    .main-site-screenshot-container {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      padding: 0;
-      margin: -1px;
-      overflow: hidden;
-      clip: rect(0, 0, 0, 0);
-      white-space: nowrap;
-      border-width: 0;
-    }
-    
-    .main-site-screenshot-container .main-site-screenshot {
-      width: 100%;
-      height: auto;
-      display: block;
-    }
-    
-    ::-webkit-scrollbar {
-        width: 12px;
-    }
-
-    ::-webkit-scrollbar-track {
-        background: ${THEME.colors.background};
-    }
-
-    ::-webkit-scrollbar-thumb {
-        background-color: ${THEME.colors.paperBorder};
-        border-radius: 6px;
-        border: 3px solid ${THEME.colors.background};
-    }
-
-    body {
-        scrollbar-width: auto; /* Always show scrollbar in Firefox */
-        scrollbar-color: ${THEME.colors.paperBorder} ${THEME.colors.background};  
-    }
-
-    body {
-        -ms-overflow-style: scrollbar; /* Always show scrollbar in IE/Edge */
-    }
-  `),
-  ])
-);

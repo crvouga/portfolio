@@ -1,6 +1,7 @@
 import { type ViewWithProps, tag, text } from "../../library/html/index";
 import { HEAD } from "../../ui/head";
 import { THEME } from "../../ui/theme";
+import { toCopyToClipboardOnClick } from "../copy-to-clipboard";
 
 export const viewContactLinkButton: ViewWithProps<{ label: string; value: string }> = (props) => (attrs, _children) => {
   return tag(
@@ -9,7 +10,7 @@ export const viewContactLinkButton: ViewWithProps<{ label: string; value: string
       ...attrs,
       class: "contact-link-button",
       title: "Click to copy to clipboard",
-      onclick: `navigator.clipboard.writeText('${props.value}'); document.getElementById('toaster').showToast('Copied \\'${props.value}\\' to clipboard')`,
+      onclick: toCopyToClipboardOnClick(props.value, `Copied '${props.value}' to clipboard`),
     },
     [
       tag("span", { class: "contact-link-button-label" }, [text(props.label)]),

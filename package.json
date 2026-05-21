@@ -30,6 +30,8 @@
     "decommission-cloudflare-workers": "bun run scripts/decommission-cloudflare-workers.ts"
   },
   "devDependencies": {
+    "@fontsource-variable/inter": "^5.2.8",
+    "@fontsource-variable/jetbrains-mono": "^5.2.8",
     "@types/bun": "latest",
     "listr2": "^10.2.1",
     "p-limit": "^7.3.0",
