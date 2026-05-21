@@ -24,14 +24,6 @@ on:
   push:
     branches:
       - main
-    paths:
-      - "fly/fly.toml.template"
-      - "scripts/fly/**"
-      - "scripts/cloudflare/**"
-      - "scripts/lib/**"
-      - "scripts/health-check-urls.ts"
-      - "scripts/check-github-secrets.ts"
-      - ".github/workflows/deploy-pipeline.yml"
   workflow_dispatch:
     inputs:
       image_tag:
