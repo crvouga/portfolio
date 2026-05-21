@@ -1,23 +1,21 @@
 name: Deploy Pipeline
 
-# Unified pipeline — one workflow does everything previously split across
-# `bootstrap.yml`, `build-and-publish-images.yml`, and the old multi-trigger
-# deploy. The `plan` job decides what runs this time so unchanged jobs are
-# skipped entirely instead of merely fast-pathing.
+# Every push to main (except docs/assets) runs the full pipeline: idempotent
+# Cloudflare + Fly bootstrap, rebuild all images, deploy, health-check, audit,
+# teardown. Downstream scripts are idempotent — the workflow only orchestrates.
 #
-#   plan ─┬─▶ cloudflare-zones    (only on dispatch bootstrap_mode={zones,both})
-#         ├─▶ cloudflare-dns-sync
-#         ├─▶ fly-bootstrap       (on projects.ts change or dispatch apps/both)
-#         ├─▶ build-and-push       (matrix; skipped when nothing rebuilds)
-#         └─▶ fly-secrets-sync ─▶ fly-deploy ─▶ health-check + audit + teardown
-#
-# Every downstream script is idempotent — the workflow only orchestrates.
+#   prepare ─┬─▶ cloudflare-zones
+#            ├─▶ cloudflare-dns-sync
+#            ├─▶ fly-bootstrap
+#            └─▶ build-and-push
+#                    │
+#                    ▼
+#            fly-secrets-sync ─▶ fly-deploy ─▶ health-check + audit + teardown
 
 on:
   push:
     branches:
       - main
-    # Pure docs / asset commits never need a deploy.
     paths-ignore:
       - "**/*.md"
       - "public/**"
@@ -28,7 +26,7 @@ on:
   workflow_dispatch:
     inputs:
       project_id:
-        description: "Single project id (filters build + deploy)."
+        description: "Single project id (filters build + deploy matrix)."
         required: false
         type: string
       image_tag:
@@ -40,26 +38,6 @@ on:
         required: false
         type: boolean
         default: true
-      force_build:
-        description: "Build even if the target image already exists in ghcr."
-        required: false
-        type: boolean
-        default: false
-      skip_build:
-        description: "Skip the build stage; deploy with the existing tag."
-        required: false
-        type: boolean
-        default: false
-      bootstrap_mode:
-        description: "Run Cloudflare zone setup and/or Fly app bootstrap."
-        required: false
-        type: choice
-        options:
-          - none
-          - zones
-          - apps
-          - both
-        default: none
       dry_run:
         description: "Plan-only for zone setup and Fly bootstrap."
         required: false
@@ -92,50 +70,39 @@ env:
   FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
   CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
   CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+  IMAGE_TAG: ${{ inputs.image_tag || github.sha }}
 
 jobs:
-  plan:
+  prepare:
     runs-on: ubuntu-latest
     outputs:
-      image_tag: ${{ steps.plan.outputs.image_tag }}
-      build_matrix: ${{ steps.plan.outputs.build_matrix }}
-      deploy_matrix: ${{ steps.plan.outputs.deploy_matrix }}
-      has_build: ${{ steps.plan.outputs.has_build }}
-      has_deploy: ${{ steps.plan.outputs.has_deploy }}
-      run_zones: ${{ steps.plan.outputs.run_zones }}
-      run_dns: ${{ steps.plan.outputs.run_dns }}
-      run_bootstrap: ${{ steps.plan.outputs.run_bootstrap }}
+      matrix: ${{ steps.matrix.outputs.matrix }}
     steps:
       - uses: actions/checkout@v5
-        with:
-          # Need the parent commit for `git diff ${{ github.event.before }}...`.
-          fetch-depth: 0
       - uses: oven-sh/setup-bun@v2
       - name: Install dependencies
         run: bun install --frozen-lockfile
       - name: Typecheck
-        # Cheap gate before fanning out 15+ Docker builds.
         run: bun run typecheck
-      - id: plan
+      - id: matrix
         env:
-          GH_EVENT_NAME: ${{ github.event_name }}
-          GH_EVENT_BEFORE: ${{ github.event.before }}
-          GH_SHA: ${{ github.sha }}
-          GHCR_OWNER: ${{ github.repository_owner }}
-          DISPATCH_PROJECT_ID: ${{ inputs.project_id }}
-          DISPATCH_IMAGE_TAG: ${{ inputs.image_tag }}
-          DISPATCH_FORCE_BUILD: ${{ inputs.force_build }}
-          DISPATCH_SKIP_BUILD: ${{ inputs.skip_build }}
-          DISPATCH_BOOTSTRAP_MODE: ${{ inputs.bootstrap_mode }}
-        run: bun run scripts/ci/plan-pipeline.ts
+          PROJECT_ID: ${{ inputs.project_id }}
+        run: |
+          set -euo pipefail
+          ARGS=(--github-output)
+          if [ -n "${PROJECT_ID:-}" ]; then
+            ARGS+=(--id "${PROJECT_ID}")
+          fi
+          bun run scripts/generate-deploy-matrix.ts "${ARGS[@]}"
 
   cloudflare-zones:
     runs-on: ubuntu-latest
-    needs: plan
-    if: ${{ needs.plan.outputs.run_zones == 'true' }}
+    needs: prepare
     steps:
       - uses: actions/checkout@v5
       - uses: oven-sh/setup-bun@v2
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
       - name: Ensure zones + print nameservers
         run: |
           set -euo pipefail
@@ -147,11 +114,12 @@ jobs:
 
   cloudflare-dns-sync:
     runs-on: ubuntu-latest
-    needs: plan
-    if: ${{ needs.plan.outputs.run_dns == 'true' }}
+    needs: prepare
     steps:
       - uses: actions/checkout@v5
       - uses: oven-sh/setup-bun@v2
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
       - name: Reconcile Cloudflare DNS
         run: |
           set -euo pipefail
@@ -163,12 +131,13 @@ jobs:
 
   fly-bootstrap:
     runs-on: ubuntu-latest
-    needs: plan
-    if: ${{ needs.plan.outputs.run_bootstrap == 'true' }}
+    needs: prepare
     steps:
       - uses: actions/checkout@v5
       - uses: oven-sh/setup-bun@v2
       - uses: superfly/flyctl-actions/setup-flyctl@master
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
       - name: Bootstrap Fly apps + IPs
         env:
           FLY_ORG: ${{ inputs.fly_org || 'personal' }}
@@ -182,14 +151,13 @@ jobs:
 
   build-and-push:
     runs-on: ubuntu-latest
-    needs: plan
-    if: ${{ needs.plan.outputs.has_build == 'true' }}
+    needs: prepare
     permissions:
       contents: read
       packages: write
     strategy:
       fail-fast: false
-      matrix: ${{ fromJSON(needs.plan.outputs.build_matrix) }}
+      matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
     steps:
       - name: Checkout portfolio (this repository)
         uses: actions/checkout@v5
@@ -208,32 +176,10 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Check ghcr for existing image
-        id: cache_check
-        env:
-          IMAGE: ${{ matrix.image_repo }}:${{ matrix.image_tag }}
-          FORCE_BUILD: ${{ inputs.force_build }}
-        run: |
-          set -euo pipefail
-          if [ "${FORCE_BUILD}" = "true" ]; then
-            echo "Force build enabled."
-            echo "exists=false" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          if docker manifest inspect "$IMAGE" > /dev/null 2>&1; then
-            echo "Image $IMAGE already in registry; skipping rebuild."
-            echo "exists=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "Image $IMAGE not in registry; building."
-            echo "exists=false" >> "$GITHUB_OUTPUT"
-          fi
-
       - name: Set up Docker Buildx
-        if: ${{ steps.cache_check.outputs.exists != 'true' }}
         uses: docker/setup-buildx-action@v4
 
       - name: Build and push ${{ matrix.id }}
-        if: ${{ steps.cache_check.outputs.exists != 'true' }}
         uses: docker/build-push-action@v6
         with:
           context: ${{ matrix.build_context }}
@@ -243,35 +189,29 @@ jobs:
           provenance: false
           tags: |
             ${{ matrix.image_repo }}:latest
-            ${{ matrix.image_repo }}:${{ matrix.image_tag }}
-          # Per-target GHA cache scope keeps unrelated projects from evicting
-          # each other.
+            ${{ matrix.image_repo }}:${{ env.IMAGE_TAG }}
           cache-from: type=gha,scope=${{ matrix.id }}
           cache-to: type=gha,mode=max,scope=${{ matrix.id }}
 
   fly-secrets-sync:
     runs-on: ubuntu-latest
-    needs: [plan, cloudflare-dns-sync, fly-bootstrap]
-    # Run as long as no upstream infra job FAILED. Skipped jobs are fine —
-    # plan decided we didn't need them this time.
+    needs: [prepare, cloudflare-dns-sync, fly-bootstrap]
     if: >-
       ${{
         always()
-        && needs.plan.outputs.has_deploy == 'true'
         && needs.cloudflare-dns-sync.result != 'failure'
         && needs.cloudflare-dns-sync.result != 'cancelled'
         && needs.fly-bootstrap.result != 'failure'
         && needs.fly-bootstrap.result != 'cancelled'
       }}
     env:
-      # Pass the entire `secrets` context as JSON. `check-github-secrets.ts`
-      # parses it, validates that every GitHub-sourced secret declared in
-      # projects.ts is present, and re-exports each into $GITHUB_ENV.
       ALL_GITHUB_SECRETS: ${{ toJSON(secrets) }}
     steps:
       - uses: actions/checkout@v5
       - uses: oven-sh/setup-bun@v2
       - uses: superfly/flyctl-actions/setup-flyctl@master
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
       - name: Validate + re-export GitHub-sourced secrets
         run: bun run scripts/check-github-secrets.ts
       - name: Push secrets to Fly apps
@@ -287,42 +227,38 @@ jobs:
 
   fly-deploy:
     runs-on: ubuntu-latest
-    needs: [plan, fly-secrets-sync, build-and-push]
+    needs: [prepare, fly-secrets-sync, build-and-push]
     if: >-
       ${{
-        always()
-        && needs.plan.outputs.has_deploy == 'true'
-        && needs.fly-secrets-sync.result == 'success'
-        && (
-          needs.build-and-push.result == 'success'
-          || needs.build-and-push.result == 'skipped'
-        )
+        needs.fly-secrets-sync.result == 'success'
+        && needs.build-and-push.result == 'success'
       }}
     strategy:
       fail-fast: false
-      matrix: ${{ fromJSON(needs.plan.outputs.deploy_matrix) }}
+      matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v5
       - uses: oven-sh/setup-bun@v2
       - uses: superfly/flyctl-actions/setup-flyctl@master
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
       - name: Deploy ${{ matrix.id }} to Fly
         run: |
           set -euo pipefail
           bun run fly:deploy \
             --id "${{ matrix.id }}" \
-            --image "${{ matrix.image_repo }}:${{ matrix.image_tag }}"
+            --image "${{ matrix.image_repo }}:${{ env.IMAGE_TAG }}"
 
   health-check:
     runs-on: ubuntu-latest
     needs: fly-deploy
-    if: ${{ always() && needs.fly-deploy.result == 'success' }}
+    if: ${{ needs.fly-deploy.result == 'success' }}
     steps:
       - uses: actions/checkout@v5
       - uses: oven-sh/setup-bun@v2
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
       - name: Health-check public URLs
-        # `normalizer-app` is always-on now (`scaleToZero: false`); other Fly
-        # apps still suspend on idle, so we need warmup + retries but can use
-        # tighter limits than before.
         run: |
           bun run health-check-urls \
             --warmup-timeout-ms 90000 \
@@ -330,31 +266,29 @@ jobs:
             --fly-retries 4 \
             --retry-delay-ms 5000
 
-  # Verify every scale-to-zero Fly app actually has the right settings on its
-  # live machines. Catches dashboard edits and leftover HA pairs.
   scale-to-zero-audit:
     runs-on: ubuntu-latest
     needs: fly-deploy
-    if: ${{ always() && needs.fly-deploy.result != 'cancelled' && needs.fly-deploy.result != 'skipped' }}
+    if: ${{ needs.fly-deploy.result == 'success' }}
     steps:
       - uses: actions/checkout@v5
       - uses: oven-sh/setup-bun@v2
       - uses: superfly/flyctl-actions/setup-flyctl@master
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
       - name: Audit scale-to-zero compliance
         run: bun run fly:audit-scale
 
-  # Destroy Fly apps that no longer appear in `projects.ts`. Capped at
-  # `max_teardowns_per_run` (default 1) so an accidental mass-delete in a PR
-  # doesn't wipe the org. Only runs on a clean deploy so we never destroy
-  # live apps when something else broke.
   fly-teardown:
     runs-on: ubuntu-latest
     needs: fly-deploy
-    if: ${{ always() && needs.fly-deploy.result == 'success' }}
+    if: ${{ needs.fly-deploy.result == 'success' }}
     steps:
       - uses: actions/checkout@v5
       - uses: oven-sh/setup-bun@v2
       - uses: superfly/flyctl-actions/setup-flyctl@master
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
       - name: Tear down orphan Fly apps
         env:
           MAX_TEARDOWNS: ${{ inputs.max_teardowns_per_run || '1' }}

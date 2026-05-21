@@ -7,10 +7,8 @@
  *   - context     → "<checkout>/<context>" (defaults to "<checkout>")
  *   - dockerfile  → "<context>/Dockerfile" by default
  *
- * Used as a CLI / debugging tool. The unified `deploy-pipeline.yml` workflow
- * builds its build + deploy matrices via [scripts/ci/plan-pipeline.ts] so the
- * project list never has to be hardcoded in YAML and unchanged targets can
- * be skipped per-run.
+ * Used by `deploy-pipeline.yml` (`prepare` job) and as a local CLI. The
+ * project list is never hardcoded in workflow YAML.
  *
  * Output shape:
  *   { "include": [
@@ -32,7 +30,10 @@
  *   bun run scripts/generate-deploy-matrix.ts
  *   bun run scripts/generate-deploy-matrix.ts --pretty
  *   bun run scripts/generate-deploy-matrix.ts --owner crvouga
+ *   bun run scripts/generate-deploy-matrix.ts --id normalizer-app
+ *   bun run scripts/generate-deploy-matrix.ts --github-output
  */
+import { appendFileSync } from "node:fs";
 import {
   flyAppName,
   PORTFOLIO_INFRA_TARGET,
@@ -52,8 +53,15 @@ type MatrixInclude = {
   readonly image_repo: string;
 };
 
-function parseArgs(argv: readonly string[]): { pretty: boolean; owner: string } {
+function parseArgs(argv: readonly string[]): {
+  pretty: boolean;
+  owner: string;
+  projectId: string;
+  githubOutput: boolean;
+} {
   let pretty = false;
+  let githubOutput = false;
+  let projectId = (process.env["PROJECT_ID"] ?? "").trim();
   let owner =
     process.env["GITHUB_REPOSITORY_OWNER"]?.trim() ||
     process.env["GHCR_OWNER"]?.trim() ||
@@ -61,13 +69,17 @@ function parseArgs(argv: readonly string[]): { pretty: boolean; owner: string } 
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     if (arg === "--pretty") pretty = true;
+    else if (arg === "--github-output") githubOutput = true;
     else if (arg === "--owner") owner = argv[++i] ?? owner;
+    else if (arg === "--id") projectId = argv[++i] ?? projectId;
     else if (arg === "--help" || arg === "-h") {
-      console.log("Usage: bun run scripts/generate-deploy-matrix.ts [--pretty] [--owner <gh-owner>]");
+      console.log(
+        "Usage: bun run scripts/generate-deploy-matrix.ts [--pretty] [--owner <gh-owner>] [--id <project-id>] [--github-output]",
+      );
       process.exit(0);
     }
   }
-  return { pretty, owner: owner.toLowerCase() };
+  return { pretty, owner: owner.toLowerCase(), projectId, githubOutput };
 }
 
 function imageRepoFor(owner: string, id: string): string {
@@ -105,7 +117,7 @@ function resolveBuildPaths(
   return { checkoutPath, buildContext, dockerfile };
 }
 
-function toMatrixInclude(owner: string): readonly MatrixInclude[] {
+function toMatrixInclude(owner: string, projectId: string): readonly MatrixInclude[] {
   const includes: MatrixInclude[] = [];
 
   // Portfolio is special: built from the repo root in-place, so checkout_path
@@ -137,13 +149,34 @@ function toMatrixInclude(owner: string): readonly MatrixInclude[] {
     });
   }
 
+  if (projectId) {
+    const row = includes.find((r) => r.id === projectId);
+    if (!row) {
+      console.error(`::error::project id "${projectId}" is not a known deploy target`);
+      process.exit(2);
+    }
+    return [row];
+  }
+
   return includes;
 }
 
-const args = parseArgs(process.argv.slice(2));
-const matrix = { include: toMatrixInclude(args.owner) };
+function writeGithubOutput(matrix: { include: readonly MatrixInclude[] }): void {
+  const file = process.env["GITHUB_OUTPUT"];
+  const payload = JSON.stringify(matrix);
+  if (file) {
+    appendFileSync(file, `matrix<<__MATRIX_EOF__\n${payload}\n__MATRIX_EOF__\n`);
+  } else {
+    console.log(`::set-output name=matrix::${payload}`);
+  }
+}
 
-if (args.pretty) {
+const args = parseArgs(process.argv.slice(2));
+const matrix = { include: toMatrixInclude(args.owner, args.projectId) };
+
+if (args.githubOutput) {
+  writeGithubOutput(matrix);
+} else if (args.pretty) {
   console.log(JSON.stringify(matrix, null, 2));
 } else {
   console.log(JSON.stringify(matrix));

@@ -20,7 +20,6 @@
     "clone-projects": "bun run scripts/clone-projects.ts",
     "health-check-urls": "bun run scripts/health-check-urls.ts",
     "generate-deploy-matrix": "bun run scripts/generate-deploy-matrix.ts",
-    "ci:plan": "bun run scripts/ci/plan-pipeline.ts",
     "fly:bootstrap": "bun run scripts/fly/bootstrap-apps.ts",
     "fly:sync-secrets": "bun run scripts/fly/sync-secrets.ts",
     "fly:deploy": "bun run scripts/fly/deploy-app.ts",

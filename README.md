@@ -42,7 +42,7 @@ GitHub repo ──▶ GitHub Actions
 | `scripts/fly/` | Orchestrators: `bootstrap-apps`, `sync-secrets`, `deploy-app`, `teardown-apps`. |
 | `scripts/cloudflare/` | Orchestrators: `setup-zone`, `sync-dns`. |
 | `scripts/decommission-cloudflare-workers.ts` | One-time legacy Cloudflare Workers cleanup. |
-| `scripts/ci/` | CI planning. `plan-pipeline.ts` decides which jobs run per push. |
+| `scripts/generate-deploy-matrix.ts` | Emits the GitHub Actions build/deploy matrix from `projects.ts`. |
 | `.github/workflows/` | Single `deploy-pipeline` workflow handles bootstrap, build, and deploy. |
 
 ## Common scripts
@@ -68,48 +68,32 @@ bun run decommission-cloudflare-workers           # dry-run legacy Workers teard
 
 ## GitHub Actions
 
-One workflow runs everything. The `plan` job inspects `git diff` (push) or
-the `workflow_dispatch` inputs and emits per-run flags so unchanged jobs are
-skipped instead of fast-pathed.
+One workflow runs the full pipeline on every push to `main` (docs and
+screenshots are ignored via `paths-ignore`). Bootstrap steps are idempotent
+and always run; every deploy target is rebuilt and pushed to ghcr on each run.
 
 | Workflow | Trigger | What it does |
 | --- | --- | --- |
-| `deploy-pipeline.yml` | push to `main`, manual | plan → optional Cloudflare zones / DNS / Fly bootstrap → matrix build → secrets sync → matrix deploy → health-check + scale-to-zero audit + teardown. |
+| `deploy-pipeline.yml` | push to `main`, manual | prepare (typecheck + matrix) → Cloudflare zones / DNS / Fly bootstrap → build all images → secrets sync → deploy → health-check + scale-to-zero audit + teardown. |
 
-### Per-run skips
+Preview the deploy matrix locally:
 
-`scripts/ci/plan-pipeline.ts` decides which jobs run from changed paths:
-
-| Changed paths | Effect |
-| --- | --- |
-| `Dockerfile`, `src/**`, `package.json`, `bun.lock`, `tsconfig.json`, `projects.ts` | Build + deploy `portfolio`. |
-| `projects.ts` with **new** project ids | Build + deploy each new id; `fly-bootstrap` runs to create the app + IPs. |
-| `fly/**`, `scripts/fly/**`, `scripts/cloudflare/**`, `scripts/lib/**`, `.github/workflows/**` | Deploy every target with the existing `:latest` image (no rebuilds). |
-| `**/*.md`, `public/**`, `.vscode/**`, `.cursor/**`, `.gitignore`, `.editorconfig` | Workflow doesn't run at all (`paths-ignore`). |
-| Anything else | Safe default: portfolio rebuild + deploy every target. |
-
-The `build-and-push` job additionally checks `docker manifest inspect` per
-matrix row and skips the build when the target tag already exists in ghcr,
-so re-running a green pipeline is essentially free.
+```bash
+bun run generate-deploy-matrix -- --pretty
+bun run generate-deploy-matrix -- --id normalizer-app --pretty
+```
 
 ### `workflow_dispatch` inputs
 
 | Input | Default | Notes |
 | --- | --- | --- |
 | `project_id` | _empty_ | Filter the build and deploy matrices to one id. |
-| `image_tag` | `github.sha` | Tag used for both build and deploy (combine with `skip_build` to redeploy an older image). |
+| `image_tag` | `github.sha` | Tag used for both build and deploy. |
 | `apply_dns` | `true` | Uncheck for plan-only DNS reconciliation. |
-| `force_build` | `false` | Build even if the target image already exists at ghcr. |
-| `skip_build` | `false` | Skip the build stage; deploy with `image_tag` as-is. |
-| `bootstrap_mode` | `none` | `none` / `zones` / `apps` / `both`. Controls Cloudflare zone setup and Fly app bootstrap. |
 | `dry_run` | `false` | Plan-only for zone + Fly bootstrap. |
 | `fly_org` | `personal` | Fly organisation slug. |
 | `force_teardown` | `false` | Bypass the `max_teardowns_per_run` safety cap. |
 | `max_teardowns_per_run` | `1` | Cap on Fly apps destroyed per run. |
-
-Run `bun run ci:plan` locally with the same env vars (`GHCR_OWNER`,
-`GH_EVENT_NAME`, `GH_EVENT_BEFORE`, `GH_SHA`, `DISPATCH_*`) to preview a
-plan before pushing.
 
 ## Required GitHub secrets
 
@@ -136,14 +120,13 @@ secrets-sync step. Adding a new GitHub-sourced secret is therefore:
 ## One-time cutover (registrar → Cloudflare → Fly)
 
 1. **Set GitHub secrets** above on the repo (Settings → Secrets and variables → Actions).
-2. **Dispatch `Deploy Pipeline`** with `bootstrap_mode = zones` and
-   `dry_run = false`. The `cloudflare-zones` job prints the nameservers
-   Cloudflare assigned to `chrisvouga.dev`.
+2. **Dispatch `Deploy Pipeline`** with `dry_run = false`. The
+   `cloudflare-zones` job prints the nameservers Cloudflare assigned to
+   `chrisvouga.dev`.
 3. **Update the registrar** to point `chrisvouga.dev` at those nameservers and
    wait for delegation to propagate (`dig NS chrisvouga.dev` → Cloudflare values).
-4. **Dispatch `Deploy Pipeline` again** with `bootstrap_mode = both`. This runs
-   zones (idempotent), then creates one Fly app per deploy target with
-   dedicated IPv4/IPv6, then builds and deploys everything end-to-end.
+4. **Dispatch `Deploy Pipeline` again** (or push to `main`). Bootstrap is
+   idempotent: zones, Fly apps + IPs, then build and deploy everything.
 5. **Watch `Deploy Pipeline`**: Cloudflare CNAMEs are reconciled, secrets are
    pushed to Fly, every app is deployed, and the health-check job confirms each
    public URL returns 200.
@@ -155,9 +138,7 @@ secrets-sync step. Adding a new GitHub-sourced secret is therefore:
    [Deploy spec fields](#deploy-spec-fields) below).
 2. If the project references any `fromGithub("X")` secrets that don't exist
    yet, add them under repo Settings → Secrets and variables → Actions.
-3. Push to `main`. The unified deploy pipeline notices the new id and runs
-   end-to-end:
-   - `plan` flags `fly-bootstrap` and adds the new id to the build + deploy matrices.
+3. Push to `main`. The deploy pipeline runs end-to-end:
    - `fly-bootstrap` creates the Fly app + dedicated IPv4/IPv6 (idempotent).
    - `cloudflare-dns-sync` adds the `<sub>.chrisvouga.dev` CNAME.
    - `build-and-push` builds and pushes the container to `ghcr.io`.
