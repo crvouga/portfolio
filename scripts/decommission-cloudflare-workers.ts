@@ -16,12 +16,12 @@
  *   CLOUDFLARE_SECRETS_STORE_ID (required for secret cleanup; optional otherwise)
  *
  * Usage:
- *   bun run scripts/decommission-cloudflare.ts                # dry-run
- *   bun run scripts/decommission-cloudflare.ts --apply        # actually delete
- *   bun run scripts/decommission-cloudflare.ts --apply \
- *     --delete-store                                          # also delete Secrets Store
- *   bun run scripts/decommission-cloudflare.ts --apply \
- *     --skip-routes --skip-worker                             # selective teardown
+ *   bun run scripts/decommission-cloudflare-workers.ts                # dry-run
+ *   bun run scripts/decommission-cloudflare-workers.ts --apply        # actually delete
+ *   bun run scripts/decommission-cloudflare-workers.ts --apply \
+ *     --delete-store                                                  # also delete Secrets Store
+ *   bun run scripts/decommission-cloudflare-workers.ts --apply \
+ *     --skip-routes --skip-worker                                     # selective teardown
  */
 import { getDeployableProjects } from "../projects.js";
 

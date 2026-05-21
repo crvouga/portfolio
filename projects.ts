@@ -669,6 +669,21 @@ export const PORTFOLIO_INFRA_TARGET: InfraTarget = {
   secrets: [],
 };
 
+/** Fly app name for an infra target (Fly app names are globally namespaced). */
+export function flyAppName(id: string): string {
+  return `chrisvouga-${id}`;
+}
+
+/**
+ * Cloudflare zone (apex domain) that should host the DNS record for `hostname`.
+ * Single zone today (`chrisvouga.dev`) but the function lets us add more later.
+ */
+export function cloudflareZoneForHostname(hostname: string): string {
+  const parts = hostname.split(".");
+  if (parts.length < 2) return hostname;
+  return parts.slice(-2).join(".");
+}
+
 /**
  * All targets that get deployed: the portfolio meta-site + every deployable Project.
  * Used by AWS CDK, GitHub Actions matrix generation, and the decommission script.

@@ -1,8 +1,9 @@
-name: Decommission Cloudflare
+name: Decommission Cloudflare Workers
 
-# Manual, gated workflow that tears down Cloudflare resources for this repo
-# (Worker, container apps, custom-domain routes, Secrets Store secrets).
-# Defaults to dry-run; set the `apply` input to actually delete.
+# Manual, gated workflow that tears down legacy Cloudflare Workers resources
+# for this repo (Worker, container apps, custom-domain routes, Secrets Store
+# secrets). Does NOT touch DNS records — those are managed by
+# scripts/cloudflare/sync-dns.ts. Defaults to dry-run.
 
 on:
   workflow_dispatch:
@@ -19,7 +20,7 @@ on:
         default: false
 
 concurrency:
-  group: decommission-cloudflare-${{ github.ref }}
+  group: decommission-cloudflare-workers-${{ github.ref }}
   cancel-in-progress: false
 
 permissions:
@@ -52,4 +53,4 @@ jobs:
           if [ "${{ inputs.delete_store }}" = "true" ]; then
             ARGS+=("--delete-store")
           fi
-          bun run scripts/decommission-cloudflare.ts "${ARGS[@]}"
+          bun run scripts/decommission-cloudflare-workers.ts "${ARGS[@]}"

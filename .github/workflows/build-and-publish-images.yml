@@ -1,5 +1,9 @@
 name: Build And Publish Images
 
+# Build a Docker image for every deploy target in `projects.ts` and push it to
+# GitHub Container Registry (`ghcr.io/<owner>/chrisvouga-<id>`). No platform-
+# specific wrappers — the same image is consumed verbatim by Fly.io.
+
 on:
   push:
     branches:
@@ -8,8 +12,8 @@ on:
       - "projects.ts"
       - "Dockerfile"
       - "nginx.conf"
-      - "aws/lambda-wrapper.Dockerfile"
-      - "scripts/generate-aws-deploy-matrix.ts"
+      - "fly/fly.toml.template"
+      - "scripts/generate-deploy-matrix.ts"
       - ".github/workflows/build-and-publish-images.yml"
   workflow_dispatch:
     inputs:
@@ -23,11 +27,8 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  id-token: write
   contents: read
-
-env:
-  AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
+  packages: write
 
 jobs:
   configure:
@@ -40,9 +41,10 @@ jobs:
       - id: matrix
         env:
           PROJECT_ID: ${{ inputs.project_id }}
+          GHCR_OWNER: ${{ github.repository_owner }}
         run: |
           set -euo pipefail
-          MATRIX=$(bun run scripts/generate-aws-deploy-matrix.ts)
+          MATRIX=$(bun run scripts/generate-deploy-matrix.ts --owner "$GHCR_OWNER")
           if [ -n "${PROJECT_ID:-}" ]; then
             MATRIX=$(echo "$MATRIX" | jq --arg pid "$PROJECT_ID" '.include |= map(select(.id == $pid))')
             COUNT=$(echo "$MATRIX" | jq '.include | length')
@@ -70,58 +72,45 @@ jobs:
           repository: ${{ matrix.checkout_repo }}
           path: ${{ matrix.checkout_path }}
 
-      - name: Configure AWS credentials (OIDC)
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/GitHubActionsRole
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Login to Amazon ECR
-        id: ecr
-        uses: aws-actions/amazon-ecr-login@v2
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
 
-      - name: Build base image (original Dockerfile)
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push image
         run: |
           set -euo pipefail
+          REPO="${{ matrix.image_repo }}"
           docker buildx build \
             --platform linux/amd64 \
             --file "${{ matrix.dockerfile }}" \
-            --tag "chrisvouga-base:${{ matrix.id }}" \
-            --load \
-            "${{ matrix.build_context }}"
-
-      - name: Wrap with AWS Lambda Web Adapter and push to ECR
-        run: |
-          set -euo pipefail
-          REGISTRY="${{ steps.ecr.outputs.registry }}"
-          REPO_URI="${REGISTRY}/${{ matrix.id }}"
-          docker buildx build \
-            --platform linux/amd64 \
-            --file aws/lambda-wrapper.Dockerfile \
-            --build-arg BASE_IMAGE="chrisvouga-base:${{ matrix.id }}" \
-            --tag "${REPO_URI}:latest" \
-            --tag "${REPO_URI}:${{ github.sha }}" \
+            --tag "${REPO}:latest" \
+            --tag "${REPO}:${{ github.sha }}" \
             --provenance=false \
             --push \
-            .
-          echo "Pushed ${REPO_URI}:latest and ${REPO_URI}:${{ github.sha }}"
+            "${{ matrix.build_context }}"
+          echo "Pushed ${REPO}:latest and ${REPO}:${{ github.sha }}"
 
-      - name: Roll out new image to Lambda
-        run: |
-          set -euo pipefail
-          FN_NAME="chrisvouga-$(echo "${{ matrix.id }}" | tr '[:upper:]' '[:lower:]' | tr -c 'a-z0-9-' '-' | cut -c 1-40)"
-          REGISTRY="${{ steps.ecr.outputs.registry }}"
-          IMAGE_URI="${REGISTRY}/${{ matrix.id }}:${{ github.sha }}"
-          if aws lambda get-function --function-name "$FN_NAME" --region "${AWS_REGION}" >/dev/null 2>&1; then
-            aws lambda update-function-code \
-              --function-name "$FN_NAME" \
-              --image-uri "$IMAGE_URI" \
-              --region "${AWS_REGION}" \
-              --publish >/dev/null
-            echo "Lambda $FN_NAME updated to $IMAGE_URI"
-          else
-            echo "Lambda $FN_NAME not found yet — skipping rollout (LambdaServicesStack must be deployed first)."
-          fi
+  trigger-deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch deploy pipeline
+        uses: actions/github-script@v8
+        with:
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'deploy-pipeline.yml',
+              ref: context.ref,
+              inputs: {
+                image_tag: context.sha,
+                project_id: '${{ inputs.project_id }}'
+              }
+            });

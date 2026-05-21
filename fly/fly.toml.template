@@ -1,0 +1,37 @@
+# AUTO-RENDERED template — see scripts/fly/deploy-app.ts.
+#
+# Substitution tokens:
+#   ${APP}      Fly app name (e.g. chrisvouga-pickflix)
+#   ${IMAGE}    Full image URI (e.g. ghcr.io/crvouga/chrisvouga-pickflix:<sha>)
+#   ${PORT}     Port the application listens on inside the container
+#   ${REGION}   Primary Fly region (default: iad)
+
+app = "${APP}"
+primary_region = "${REGION}"
+
+[build]
+  image = "${IMAGE}"
+
+[http_service]
+  internal_port = ${PORT}
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["app"]
+
+  [http_service.concurrency]
+    type = "requests"
+    soft_limit = 200
+    hard_limit = 250
+
+  [[http_service.checks]]
+    grace_period = "10s"
+    interval = "30s"
+    method = "GET"
+    timeout = "5s"
+    path = "/"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"

@@ -17,13 +17,15 @@
     "generate-resume": "bun run ./src/generate-resume.ts",
     "preview": "docker build -t portfolio-app . && docker run -p 80:80 portfolio-app",
     "clone-projects": "bun run scripts/clone-projects.ts",
-    "decommission-cloudflare": "bun run scripts/decommission-cloudflare.ts",
     "health-check-urls": "bun run scripts/health-check-urls.ts",
-    "generate-aws-deploy-matrix": "bun run scripts/generate-aws-deploy-matrix.ts",
-    "print-route53-nameservers": "bun run scripts/print-route53-nameservers.ts",
-    "cdk:synth": "cd aws && npx cdk synth",
-    "cdk:deploy": "cd aws && npx cdk deploy --all",
-    "cdk:diff": "cd aws && npx cdk diff"
+    "generate-deploy-matrix": "bun run scripts/generate-deploy-matrix.ts",
+    "fly:bootstrap": "bun run scripts/fly/bootstrap-apps.ts",
+    "fly:sync-secrets": "bun run scripts/fly/sync-secrets.ts",
+    "fly:deploy": "bun run scripts/fly/deploy-app.ts",
+    "fly:teardown": "bun run scripts/fly/teardown-apps.ts",
+    "cf:setup-zone": "bun run scripts/cloudflare/setup-zone.ts",
+    "cf:sync-dns": "bun run scripts/cloudflare/sync-dns.ts",
+    "decommission-cloudflare-workers": "bun run scripts/decommission-cloudflare-workers.ts"
   },
   "devDependencies": {
     "@types/bun": "latest",
