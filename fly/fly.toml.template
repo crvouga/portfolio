@@ -1,10 +1,12 @@
 # AUTO-RENDERED template — see scripts/fly/deploy-app.ts.
 #
 # Substitution tokens:
-#   ${APP}      Fly app name (e.g. chrisvouga-pickflix)
-#   ${IMAGE}    Full image URI (e.g. ghcr.io/crvouga/chrisvouga-pickflix:<sha>)
-#   ${PORT}     Port the application listens on inside the container
-#   ${REGION}   Primary Fly region (default: iad)
+#   ${APP}           Fly app name (e.g. chrisvouga-pickflix)
+#   ${IMAGE}         Full image URI (e.g. ghcr.io/crvouga/chrisvouga-pickflix:<sha>)
+#   ${PORT}          Port the application listens on inside the container
+#   ${REGION}        Primary Fly region (default: iad)
+#   ${AUTO_STOP}     suspend (scale-to-zero) or off (always-on)
+#   ${MIN_MACHINES}  0 (scale-to-zero) or 1 (always-on)
 
 app = "${APP}"
 primary_region = "${REGION}"
@@ -21,12 +23,11 @@ primary_region = "${REGION}"
 [http_service]
   internal_port = ${PORT}
   force_https = true
-  # "suspend" pauses the VM (memory snapshot kept) so cold-wakes take seconds
-  # instead of a full cold boot. Critical for apps with embedded postgres /
-  # migration steps that take 30s+ on real "stop".
-  auto_stop_machines = "suspend"
+  # Scale-to-zero (${AUTO_STOP} + min=${MIN_MACHINES}): suspend on idle, wake on traffic.
+  # Always-on apps use auto_stop=off and min_machines_running=1 (see projects.ts).
+  auto_stop_machines = "${AUTO_STOP}"
   auto_start_machines = true
-  min_machines_running = 0
+  min_machines_running = ${MIN_MACHINES}
   processes = ["app"]
 
   [http_service.concurrency]

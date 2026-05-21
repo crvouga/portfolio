@@ -1,10 +1,26 @@
 import os from "node:os";
 import path from "node:path";
-import { chromium, type Browser } from "playwright";
+import { chromium, type Browser, type Page } from "playwright";
 import pLimit from "p-limit";
+import { getScaleToZeroHostnames } from "../projects.js";
 
 export const VIEWPORT = { width: 1920, height: 1080 } as const;
 export const PUBLIC_DIR = path.resolve("./public");
+
+/** Nav timeout for external sites (env: SCREENSHOT_TIMEOUT_MS). */
+const DEFAULT_NAV_TIMEOUT_MS = readPositiveEnv("SCREENSHOT_TIMEOUT_MS", 45_000);
+/** Nav timeout for Fly-hosted apps that may cold-start (env: SCREENSHOT_FLY_TIMEOUT_MS). */
+const FLY_NAV_TIMEOUT_MS = readPositiveEnv("SCREENSHOT_FLY_TIMEOUT_MS", 45_000);
+const DEFAULT_MAX_RETRIES = 1;
+const FLY_MAX_RETRIES = 1;
+const RETRY_DELAY_MS = readPositiveEnv("SCREENSHOT_RETRY_DELAY_MS", 2_000);
+const WARMUP_TIMEOUT_MS = readPositiveEnv("SCREENSHOT_WARMUP_TIMEOUT_MS", 25_000);
+/** Hard cap on total time per screenshot job (env: SCREENSHOT_MAX_JOB_MS). */
+const MAX_JOB_MS = readPositiveEnv("SCREENSHOT_MAX_JOB_MS", 90_000);
+const SETTLE_MS = 2_000;
+const WARMUP_CONCURRENCY = readPositiveEnv("SCREENSHOT_WARMUP_CONCURRENCY", 8);
+
+const SCALE_TO_ZERO_HOSTNAMES = getScaleToZeroHostnames();
 
 export type ScreenshotJob = {
   /** Human-readable identifier used in logs (e.g. project title). */
@@ -18,6 +34,102 @@ export type CaptureResult = {
   readonly screenshotPath: string;
   readonly elapsedMs: number;
 };
+
+function readPositiveEnv(name: string, fallback: number): number {
+  const n = Number(process.env[name]);
+  return Number.isFinite(n) && n > 0 ? n : fallback;
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function hostnameOf(url: string): string | null {
+  try {
+    return new URL(url).hostname.toLowerCase();
+  } catch {
+    return null;
+  }
+}
+
+/** True when the URL is a Fly app that suspends on idle and may cold-start. */
+export function isFlyHostedUrl(url: string): boolean {
+  const host = hostnameOf(url);
+  return host != null && SCALE_TO_ZERO_HOSTNAMES.has(host);
+}
+
+function navTimeoutForUrl(url: string): number {
+  return isFlyHostedUrl(url) ? FLY_NAV_TIMEOUT_MS : DEFAULT_NAV_TIMEOUT_MS;
+}
+
+function maxRetriesForUrl(url: string): number {
+  return isFlyHostedUrl(url) ? FLY_MAX_RETRIES : DEFAULT_MAX_RETRIES;
+}
+
+function isRetriableStatus(status: number): boolean {
+  return status === 502 || status === 503 || status === 504;
+}
+
+function isRetriableError(message: string): boolean {
+  return (
+    /timeout/i.test(message) ||
+    /no response/i.test(message) ||
+    /ECONNREFUSED/i.test(message) ||
+    /ECONNRESET/i.test(message) ||
+    /net::ERR_/i.test(message)
+  );
+}
+
+async function navigateAndSettle(page: Page, url: string, timeoutMs: number) {
+  const response = await page.goto(url, {
+    waitUntil: "load",
+    timeout: timeoutMs,
+  });
+  if (!response) throw new Error("No response received from server");
+  const status = response.status();
+  if (status < 200 || status >= 300) {
+    throw new Error(`HTTP ${status}: server returned non-success status code`);
+  }
+  await page.waitForTimeout(SETTLE_MS);
+  return response;
+}
+
+/**
+ * Sequential GETs to wake suspended Fly machines before Playwright runs.
+ * Skipped when SCREENSHOT_SKIP_WARMUP=1.
+ */
+export async function warmupScreenshotJobs(jobs: readonly ScreenshotJob[]): Promise<void> {
+  if (process.env["SCREENSHOT_SKIP_WARMUP"] === "1") return;
+
+  const urls = [...new Set(jobs.filter((j) => isFlyHostedUrl(j.url)).map((j) => j.url))];
+  if (urls.length === 0) return;
+
+  console.log(
+    `\nWarmup: waking ${urls.length} Fly-hosted site(s) ` +
+      `(timeout=${WARMUP_TIMEOUT_MS}ms, concurrency=${WARMUP_CONCURRENCY})…`,
+  );
+  const limit = pLimit(WARMUP_CONCURRENCY);
+  await Promise.all(
+    urls.map((url) =>
+      limit(async () => {
+        const host = hostnameOf(url) ?? url;
+        const start = Date.now();
+        try {
+          const res = await fetch(url, {
+            method: "GET",
+            redirect: "follow",
+            signal: AbortSignal.timeout(WARMUP_TIMEOUT_MS),
+          });
+          console.log(`  warmup ${host} ${res.status} in ${Date.now() - start}ms`);
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          console.log(`  warmup ${host} still waking (${msg}) in ${Date.now() - start}ms`);
+        }
+      }),
+    ),
+  );
+  console.log("");
+}
 
 /** Default screenshot concurrency: capped at 12, never exceeds available cores. */
 export function defaultScreenshotConcurrency(): number {
@@ -47,44 +159,63 @@ export async function closeSharedBrowser(browser: Browser | undefined): Promise<
  * its own ephemeral {@link BrowserContext} (incognito-like) so cookies /
  * storage are isolated from other jobs running in parallel.
  *
- * Throws on failure (so the caller — typically a listr2 task — can catch and
- * mark the task red). Always closes the per-job context.
+ * Uses `load` (not `networkidle`) and longer timeouts for Fly-hosted URLs so
+ * sleeping apps can cold-start. Retries transient failures with backoff.
  */
 export async function captureScreenshot(
   browser: Browser,
   job: { url: string; filename: string },
 ): Promise<CaptureResult> {
   const t0 = performance.now();
-  const context = await browser.newContext({
-    viewport: VIEWPORT,
-    colorScheme: "dark",
-  });
-  try {
-    const page = await context.newPage();
-    await page.emulateMedia({ colorScheme: "dark" });
+  const timeoutMs = navTimeoutForUrl(job.url);
+  const maxAttempts = maxRetriesForUrl(job.url) + 1;
+  let lastError = "unknown error";
 
-    const response = await page.goto(job.url, {
-      waitUntil: "networkidle",
-      timeout: 30_000,
-    });
-    if (!response) throw new Error("No response received from server");
-    const status = response.status();
-    if (status < 200 || status >= 300) {
-      throw new Error(`HTTP ${status}: server returned non-success status code`);
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const elapsed = performance.now() - t0;
+    if (elapsed >= MAX_JOB_MS) {
+      throw new Error(`Job timed out after ${Math.round(elapsed)}ms (cap=${MAX_JOB_MS}ms)`);
     }
 
-    await page.waitForTimeout(2_000);
-    const screenshotPath = path.join(PUBLIC_DIR, `${job.filename}-screenshot.png`);
-    await page.screenshot({ path: screenshotPath, fullPage: false });
-    return { screenshotPath, elapsedMs: performance.now() - t0 };
-  } finally {
+    const context = await browser.newContext({
+      viewport: VIEWPORT,
+      colorScheme: "dark",
+    });
     try {
-      await context.close();
-    } catch (closeErr) {
-      const msg = closeErr instanceof Error ? closeErr.message : String(closeErr);
-      console.warn(`  (cleanup) context.close() failed: ${msg}`);
+      const page = await context.newPage();
+      await page.emulateMedia({ colorScheme: "dark" });
+
+      const remainingMs = Math.max(5_000, MAX_JOB_MS - (performance.now() - t0));
+      await navigateAndSettle(page, job.url, Math.min(timeoutMs, remainingMs));
+
+      const screenshotPath = path.join(PUBLIC_DIR, `${job.filename}-screenshot.png`);
+      await page.screenshot({ path: screenshotPath, fullPage: false });
+      return { screenshotPath, elapsedMs: performance.now() - t0 };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      lastError = message;
+      const statusMatch = message.match(/HTTP (\d+)/);
+      const status = statusMatch ? Number(statusMatch[1]) : 0;
+      const retriable = isRetriableError(message) || isRetriableStatus(status);
+
+      if (attempt < maxAttempts && retriable) {
+        await sleep(RETRY_DELAY_MS);
+        continue;
+      }
+      throw new Error(
+        maxAttempts > 1 ? `${message} (after ${attempt} attempt(s))` : message,
+      );
+    } finally {
+      try {
+        await context.close();
+      } catch (closeErr) {
+        const msg = closeErr instanceof Error ? closeErr.message : String(closeErr);
+        console.warn(`  (cleanup) context.close() failed: ${msg}`);
+      }
     }
   }
+
+  throw new Error(lastError);
 }
 
 export type RunResult = {
@@ -97,16 +228,13 @@ export type RunOptions = {
   readonly concurrency?: number;
   /** If you already have a Browser, reuse it instead of launching/tearing down. */
   readonly browser?: Browser;
+  /** Wake Fly-hosted URLs before capturing (default true). */
+  readonly warmup?: boolean;
 };
 
 /**
  * Standalone screenshot runner used by the per-collection scripts
  * (`screenshot-work`, `screenshot-projects`, `screenshot-main`).
- *
- * Runs every job in parallel with bounded concurrency and a single shared
- * Chromium. Failure-isolated: returns a list of failed jobs instead of
- * throwing. Logs a compact one-line-per-job summary so it stays usable
- * outside listr2.
  */
 export async function runScreenshotJobs(
   label: string,
@@ -114,6 +242,9 @@ export async function runScreenshotJobs(
   options: RunOptions = {},
 ): Promise<RunResult> {
   if (jobs.length === 0) return { ok: 0, failed: [], elapsedMs: 0 };
+
+  const warmup = options.warmup ?? true;
+  if (warmup) await warmupScreenshotJobs(jobs);
 
   const concurrency = options.concurrency ?? defaultScreenshotConcurrency();
   const ownsBrowser = !options.browser;

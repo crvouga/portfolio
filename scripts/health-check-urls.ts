@@ -17,7 +17,11 @@
 import { CONTENT } from "../src/content/content";
 import { PROJECTS } from "../src/content/project";
 import { WORK } from "../src/content/work";
-import { getInfraTargets } from "../projects.js";
+import {
+  deployScaleToZero,
+  getInfraTargets,
+  getScaleToZeroHostnames,
+} from "../projects.js";
 
 type UrlCheckResult = {
   url: string;
@@ -45,9 +49,7 @@ type Args = {
   readonly warmupTimeoutMs: number;
 };
 
-const FLY_HOSTNAMES: ReadonlySet<string> = new Set(
-  getInfraTargets().map((t) => t.deploy.hostname.toLowerCase()),
-);
+const SCALE_TO_ZERO_HOSTNAMES = getScaleToZeroHostnames();
 
 function parseArgs(argv: readonly string[]): Args {
   let warmup = true;
@@ -94,13 +96,13 @@ function hostnameOf(url: string): string | null {
   }
 }
 
-function isFlyHostedUrl(url: string): boolean {
+function isScaleToZeroFlyUrl(url: string): boolean {
   const host = hostnameOf(url);
-  return host != null && FLY_HOSTNAMES.has(host);
+  return host != null && SCALE_TO_ZERO_HOSTNAMES.has(host);
 }
 
 function optionsForUrl(url: string, args: Args): CheckOptions {
-  const flyHosted = isFlyHostedUrl(url);
+  const flyHosted = isScaleToZeroFlyUrl(url);
   return {
     flyHosted,
     timeoutMs: flyHosted ? args.flyTimeoutMs : args.defaultTimeoutMs,
@@ -232,9 +234,9 @@ async function checkUrlWithRetries(url: string, args: Args): Promise<UrlCheckRes
 
 /** Sequential GETs to wake suspended Fly machines before the parallel sweep. */
 async function warmupFlyApps(args: Args): Promise<void> {
-  const targets = getInfraTargets();
+  const targets = getInfraTargets().filter((t) => deployScaleToZero(t.deploy));
   console.log(
-    `\n🔥 Warmup: waking ${targets.length} Fly deploy target(s) ` +
+    `\n🔥 Warmup: waking ${targets.length} scale-to-zero Fly target(s) ` +
       `(timeout=${args.warmupTimeoutMs}ms each, sequential)\n`,
   );
   for (const target of targets) {
@@ -288,9 +290,11 @@ const extractUrls = (): string[] => {
 const main = async () => {
   const args = parseArgs(process.argv.slice(2));
   const urls = extractUrls();
-  const flyUrlCount = urls.filter(isFlyHostedUrl).length;
+  const flyUrlCount = urls.filter(isScaleToZeroFlyUrl).length;
 
-  console.log(`\n🔍 Health Check: ${urls.length} URL(s) (${flyUrlCount} Fly-hosted)\n`);
+  console.log(
+    `\n🔍 Health Check: ${urls.length} URL(s) (${flyUrlCount} scale-to-zero Fly)\n`,
+  );
   console.log(
     `   Fly: timeout=${args.flyTimeoutMs}ms, retries=${args.flyRetries}, ` +
       `delay=${args.retryDelayMs}ms`,

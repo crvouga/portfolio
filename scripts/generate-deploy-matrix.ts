@@ -7,8 +7,10 @@
  *   - context     → "<checkout>/<context>" (defaults to "<checkout>")
  *   - dockerfile  → "<context>/Dockerfile" by default
  *
- * Used by `build-and-publish-images.yml` and `deploy-pipeline.yml` so the
- * project list never has to be hardcoded in YAML.
+ * Used as a CLI / debugging tool. The unified `deploy-pipeline.yml` workflow
+ * builds its build + deploy matrices via [scripts/ci/plan-pipeline.ts] so the
+ * project list never has to be hardcoded in YAML and unchanged targets can
+ * be skipped per-run.
  *
  * Output shape:
  *   { "include": [

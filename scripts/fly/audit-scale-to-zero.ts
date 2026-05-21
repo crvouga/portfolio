@@ -20,6 +20,7 @@
  *   bun run scripts/fly/audit-scale-to-zero.ts --prune-extras  # destroy duplicate machines (keep newest per app)
  *   bun run scripts/fly/audit-scale-to-zero.ts --json          # machine-readable
  */
+import { deployScaleToZero } from "../../projects.js";
 import { ensureFlyAuth, flyctlSafe } from "../lib/flyctl.js";
 import { buildDeployTargets, findTargetById, type DeployTarget } from "../lib/project-targets.js";
 
@@ -126,18 +127,31 @@ function parseArgs(argv: readonly string[]): Args {
   return { ids: ids.filter(Boolean), stopRunning, pruneExtras, json, failOnWarn };
 }
 
+function scaleToZeroTargets(targets: readonly DeployTarget[]): readonly DeployTarget[] {
+  return targets.filter((t) => deployScaleToZero(t.deploy));
+}
+
 function targetsFromArgs(args: Args): readonly DeployTarget[] {
-  if (args.ids.length === 0) return buildDeployTargets();
-  const out: DeployTarget[] = [];
-  for (const id of args.ids) {
+  const resolve = (id: string): DeployTarget => {
     const t = findTargetById(id);
     if (!t) {
       console.error(`No infra target with id "${id}"`);
       process.exit(1);
     }
-    out.push(t);
+    return t;
+  };
+
+  const selected =
+    args.ids.length === 0 ? buildDeployTargets() : args.ids.map((id) => resolve(id));
+
+  const filtered = scaleToZeroTargets(selected);
+  const skipped = selected.filter((t) => !deployScaleToZero(t.deploy));
+  if (skipped.length > 0) {
+    console.log(
+      `Skipping ${skipped.length} always-on app(s): ${skipped.map((t) => t.id).join(", ")}`,
+    );
   }
-  return out;
+  return filtered;
 }
 
 function listMachines(app: string): { ok: true; machines: readonly FlyMachine[] } | { ok: false; reason: "missing" | "error"; detail: string } {

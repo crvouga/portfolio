@@ -19,6 +19,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 import { ensureFlyAuth, flyctl, flyctlSafe } from "../lib/flyctl.js";
+import { deployScaleToZero } from "../../projects.js";
 import { findTargetById, type DeployTarget } from "../lib/project-targets.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -106,11 +107,14 @@ function imageUriFor(target: DeployTarget, args: Args): string {
 
 function renderFlyToml(target: DeployTarget, image: string, region: string): string {
   const template = readFileSync(FLY_TEMPLATE_PATH, "utf-8");
+  const scaleToZero = deployScaleToZero(target.deploy);
   return template
     .replaceAll("${APP}", target.flyApp)
     .replaceAll("${IMAGE}", image)
     .replaceAll("${PORT}", String(target.port))
-    .replaceAll("${REGION}", region);
+    .replaceAll("${REGION}", region)
+    .replaceAll("${AUTO_STOP}", scaleToZero ? "suspend" : "off")
+    .replaceAll("${MIN_MACHINES}", scaleToZero ? "0" : "1");
 }
 
 function deploy(target: DeployTarget, image: string, configPath: string, dryRun: boolean): void {

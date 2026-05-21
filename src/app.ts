@@ -16,6 +16,61 @@ import { HEAD } from "./ui/head";
 import { viewImage } from "./ui/image";
 import { THEME } from "./ui/theme";
 
+const SITE_PREVIEW_IMAGE = {
+  path: "/main-site-screenshot.optimized.webp",
+  width: 600,
+  height: 338,
+} as const;
+
+const sitePreviewImageUrl = `${CONTENT.SITE_URL}${SITE_PREVIEW_IMAGE.path}`;
+
+const sitePreviewImageAlt = `${CONTENT.PAGE_TITLE} - ${CONTENT.PAGE_SUBTITLE} portfolio website screenshot`;
+
+const metaDescription = (): string =>
+  replaceAll(replaceAll(CONTENT.META_DESCRIPTION, "\n", ""), "\t", "");
+
+const viewSiteStructuredData = (): Html =>
+  tag("script", { type: "application/ld+json" }, [
+    text(
+      JSON.stringify({
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "WebSite",
+            "@id": `${CONTENT.SITE_URL}/#website`,
+            url: CONTENT.SITE_URL,
+            name: CONTENT.PAGE_TITLE,
+            description: metaDescription(),
+          },
+          {
+            "@type": "Person",
+            "@id": `${CONTENT.SITE_URL}/#person`,
+            name: CONTENT.PAGE_TITLE,
+            url: CONTENT.SITE_URL,
+            jobTitle: CONTENT.PAGE_SUBTITLE,
+            image: sitePreviewImageUrl,
+          },
+          {
+            "@type": "WebPage",
+            "@id": `${CONTENT.SITE_URL}/#webpage`,
+            url: CONTENT.SITE_URL,
+            name: CONTENT.META_TITLE,
+            description: metaDescription(),
+            isPartOf: { "@id": `${CONTENT.SITE_URL}/#website` },
+            about: { "@id": `${CONTENT.SITE_URL}/#person` },
+            primaryImageOfPage: {
+              "@type": "ImageObject",
+              url: sitePreviewImageUrl,
+              contentUrl: sitePreviewImageUrl,
+              width: SITE_PREVIEW_IMAGE.width,
+              height: SITE_PREVIEW_IMAGE.height,
+            },
+          },
+        ],
+      }),
+    ),
+  ]);
+
 export const viewApp = (): Html => {
   return viewDoc({}, [
     viewNavSection(),
@@ -85,43 +140,38 @@ export const viewDoc: View = (_a?: Attrs, c?: Html[]) => {
         []
       ),
       tag("title", {}, [text(CONTENT.META_TITLE)]),
-      tag(
-        "meta",
-        {
-          name: "description",
-          content: replaceAll(
-            replaceAll(CONTENT.META_DESCRIPTION, "\n", ""),
-            "\t",
-            ""
-          ),
-        },
-        []
-      ),
+      tag("meta", { name: "description", content: metaDescription() }, []),
+      tag("link", { rel: "canonical", href: CONTENT.SITE_URL }, []),
       tag(
         "meta",
         { property: "og:title", content: CONTENT.META_TITLE },
         []
       ),
+      tag("meta", { property: "og:description", content: metaDescription() }, []),
+      tag("meta", { property: "og:image", content: sitePreviewImageUrl }, []),
+      tag(
+        "meta",
+        { property: "og:image:secure_url", content: sitePreviewImageUrl },
+        []
+      ),
       tag(
         "meta",
         {
-          property: "og:description",
-          content: replaceAll(
-            replaceAll(CONTENT.META_DESCRIPTION, "\n", ""),
-            "\t",
-            ""
-          ),
+          property: "og:image:width",
+          content: String(SITE_PREVIEW_IMAGE.width),
         },
         []
       ),
       tag(
         "meta",
         {
-          property: "og:image",
-          content: `${CONTENT.SITE_URL}/main-site-screenshot.png`,
+          property: "og:image:height",
+          content: String(SITE_PREVIEW_IMAGE.height),
         },
         []
       ),
+      tag("meta", { property: "og:image:alt", content: sitePreviewImageAlt }, []),
+      tag("meta", { property: "og:image:type", content: "image/webp" }, []),
       tag(
         "meta",
         { property: "og:url", content: CONTENT.SITE_URL },
@@ -147,26 +197,10 @@ export const viewDoc: View = (_a?: Attrs, c?: Html[]) => {
         { name: "twitter:title", content: CONTENT.META_TITLE },
         []
       ),
-      tag(
-        "meta",
-        {
-          name: "twitter:description",
-          content: replaceAll(
-            replaceAll(CONTENT.META_DESCRIPTION, "\n", ""),
-            "\t",
-            ""
-          ),
-        },
-        []
-      ),
-      tag(
-        "meta",
-        {
-          name: "twitter:image",
-          content: `${CONTENT.SITE_URL}/main-site-screenshot.png`,
-        },
-        []
-      ),
+      tag("meta", { name: "twitter:description", content: metaDescription() }, []),
+      tag("meta", { name: "twitter:image", content: sitePreviewImageUrl }, []),
+      tag("meta", { name: "twitter:image:alt", content: sitePreviewImageAlt }, []),
+      viewSiteStructuredData(),
       tag("link", { rel: "shortcut icon", href: "/favicon.ico" }, []),
       tag("link", { rel: "icon", href: "/favicon.ico" }, []),
       tag(
@@ -200,8 +234,8 @@ export const viewDoc: View = (_a?: Attrs, c?: Html[]) => {
       ),
       tag("div", { class: "visually-hidden" }, [
         viewImage({
-          src: "/main-site-screenshot.png",
-          alt: `${CONTENT.PAGE_TITLE} - ${CONTENT.PAGE_SUBTITLE} portfolio website screenshot`,
+          src: SITE_PREVIEW_IMAGE.path,
+          alt: sitePreviewImageAlt,
           fetchPriority: "high",
         })({}, []),
       ]),

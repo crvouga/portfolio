@@ -9,6 +9,7 @@
  *
  * Adding a deployable project:
  *   - Append a Project with `deployment.t === "public"` and a `deploy` block.
+ *   - `deploy.scaleToZero` defaults to true; set false only if the app must stay warm.
  *   - Push to main. CI auto-creates the Fly app + IPs, syncs secrets, deploys.
  *
  * Removing a deployable project:
@@ -17,6 +18,7 @@
  *     accidental mass-destroys.
  */
 import { randomBytes } from "node:crypto";
+import { Topic } from "./src/content/topic";
 
 // ---------------------------------------------------------------------------
 // Portfolio types
@@ -84,6 +86,11 @@ export type DeploySpec = {
   readonly port: number;
   readonly build?: BuildSpec;
   readonly secrets?: readonly SecretSpec[];
+  /**
+   * When true (default), Fly suspends the machine on idle (`min_machines_running = 0`).
+   * When false, one machine stays warm (`min_machines_running = 1`).
+   */
+  readonly scaleToZero?: boolean;
 };
 
 /** Resume curation overrides. Default: include if `projectToLinkHref` is non-null. */
@@ -107,7 +114,7 @@ export type Project = {
   readonly imageAlt: string;
   readonly galleryImageSrc: string[];
   readonly youTubeVideoId?: string;
-  readonly topics: string[];
+  readonly topics: Topic[];
   /** Present iff the project is hosted on our Fly+Cloudflare infra. */
   readonly deploy?: DeploySpec;
   /** Optional overrides for resume rendering. */
@@ -215,17 +222,17 @@ export const PROJECTS: readonly Project[] = [
     topics: ["typescript", "react", "postgres", "tailwind", "websocket", "bun", "sqlite"],
   },
   {
-    id: "geviti",
+    id: "geviti-app",
     title: "Geviti",
     setting: "work",
-    deployment: { t: "public", url: "https://www.gogeviti.com/" },
+    deployment: { t: "public", url: "https://app.gogeviti.com/" },
     code: { t: "private" },
     description:
       "Building features for a comprehensive health and longevity platform that combines bloodwork analysis, personalized supplement protocols, prescription therapies, and care team coordination. Developing tools that help users track their health metrics and optimize their well-being through proactive, data-driven care.",
     imageAlt: IMAGE_ALT,
-    imageSrc: ["/geviti-screenshot.optimized.webp"],
-    galleryImageSrc: ["/geviti-screenshot.png"],
-    topics: ["typescript", "react", "postgres", "bun", "aws"],
+    imageSrc: ["/geviti-app-screenshot.optimized.webp"],
+    galleryImageSrc: ["/geviti-app-screenshot.png"],
+    topics: ["typescript", "react", "postgres", "bun", "aws", "react-native"],
   },
   {
     id: "triangulator",
@@ -476,6 +483,7 @@ export const PROJECTS: readonly Project[] = [
       githubRepo: "crvouga/normalizer.app",
       hostname: "normalizer.chrisvouga.dev",
       port: 8080,
+      scaleToZero: false,
       secrets: [
         fromGithub("OPENAI_API_KEY"),
         // Server emits absolute URLs in OpenAPI/redirect responses; derive from
@@ -810,6 +818,20 @@ export const PORTFOLIO_INFRA_TARGET: InfraTarget = {
 /** Fly app name for an infra target (Fly app names are globally namespaced). */
 export function flyAppName(id: string): string {
   return `chrisvouga-${id}`;
+}
+
+/** Default true; only set `scaleToZero: false` on deploy specs that stay warm. */
+export function deployScaleToZero(deploy: DeploySpec): boolean {
+  return deploy.scaleToZero !== false;
+}
+
+/** Hostnames for Fly apps that suspend on idle (screenshot/health warmup). */
+export function getScaleToZeroHostnames(): ReadonlySet<string> {
+  return new Set(
+    getInfraTargets()
+      .filter((t) => deployScaleToZero(t.deploy))
+      .map((t) => t.deploy.hostname.toLowerCase()),
+  );
 }
 
 /**

@@ -58,6 +58,9 @@ export const TOPIC_TO_IMAGE_SRC = {
   html: "/html-5.svg",
   s3: "/aws-s3.svg",
   zod: "/zod.svg",
+  clojure: "/clojure.svg",
+  clojurescript: "/clojure.svg",
+  "react-native": "/react.svg",
 };
 
 export type Topic = keyof typeof TOPIC_TO_IMAGE_SRC;
@@ -119,4 +122,7 @@ export const TOPIC_TO_NAME: { [key in Topic]: string } = {
   vercel: "Vercel",
   s3: "S3",
   zod: "Zod",
+  clojure: "Clojure",
+  clojurescript: "ClojureScript",
+  "react-native": "React Native",
 };

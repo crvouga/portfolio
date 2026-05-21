@@ -26,6 +26,7 @@ import {
   closeSharedBrowser,
   defaultScreenshotConcurrency,
   launchSharedBrowser,
+  warmupScreenshotJobs,
   type ScreenshotJob,
 } from "./screenshot-helpers";
 import { buildAllScreenshotJobs } from "./screenshot-jobs";
@@ -76,6 +77,14 @@ const tasks = new Listr<Ctx>(
         const t0 = performance.now();
         ctx.browser = await launchSharedBrowser();
         t.title = `${pc.dim("Boot Chromium")}  ${fmtElapsed(performance.now() - t0)}`;
+      },
+    },
+    {
+      title: pc.dim("Warm up sleeping Fly apps"),
+      task: async (_, t) => {
+        const t0 = performance.now();
+        await warmupScreenshotJobs(screenshotJobs);
+        t.title = `${pc.dim("Warm up sleeping Fly apps")}  ${fmtElapsed(performance.now() - t0)}`;
       },
     },
     {
