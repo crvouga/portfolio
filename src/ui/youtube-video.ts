@@ -1,7 +1,7 @@
 import type { ViewWithProps } from "../library/html/index";
 import { tag, text } from "../library/html/index";
 import { HEAD } from "./head";
-import { THEME, unit } from "./theme";
+import { THEME } from "./theme";
 
 type Props = { src: string; title?: string };
 
