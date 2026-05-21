@@ -81,15 +81,66 @@ export class FlyctlError extends Error {
   }
 }
 
-export function flyctl(args: readonly string[], options: FlyctlOptions = {}): FlyctlResult {
-  const result = runFlyctl(args, options);
-  if (result.exitCode !== 0) {
-    throw new FlyctlError(args, result);
-  }
-  return result;
+/**
+ * Indicators that the failure was a transient network/server error from
+ * Fly's API and the command is safe to retry.
+ *
+ * We only retry on these — never on auth failures, validation errors, or
+ * "app not found" since retrying would just hide a real bug.
+ */
+const TRANSIENT_ERROR_PATTERNS: readonly RegExp[] = [
+  /connection reset by peer/i,
+  /broken pipe/i,
+  /i\/o timeout/i,
+  /network is unreachable/i,
+  /no such host/i,
+  /tls handshake timeout/i,
+  /unexpected EOF/i,
+  /http2: server sent GOAWAY/i,
+  /context deadline exceeded/i,
+  /\b(502|503|504)\b/, // bad gateway / service unavailable / gateway timeout
+  /server error/i,
+  /try again/i,
+  /temporarily unavailable/i,
+];
+
+function isTransientFailure(result: FlyctlResult): boolean {
+  if (result.exitCode === 0) return false;
+  const haystack = `${result.stdout}\n${result.stderr}`;
+  return TRANSIENT_ERROR_PATTERNS.some((re) => re.test(haystack));
 }
 
-/** Same as `flyctl` but returns the exit code instead of throwing. */
+function sleepSync(ms: number): void {
+  // Synchronous sleep using a SharedArrayBuffer + Atomics.wait so this works
+  // inside non-async helpers. Cheap to allocate; only called on retry.
+  const buf = new Int32Array(new SharedArrayBuffer(4));
+  Atomics.wait(buf, 0, 0, ms);
+}
+
+const MAX_RETRIES = 4;
+const BASE_BACKOFF_MS = 1_500;
+
+export function flyctl(args: readonly string[], options: FlyctlOptions = {}): FlyctlResult {
+  let result: FlyctlResult | undefined;
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    result = runFlyctl(args, options);
+    if (result.exitCode === 0) return result;
+    if (attempt === MAX_RETRIES || !isTransientFailure(result)) {
+      throw new FlyctlError(args, result);
+    }
+    const backoff = BASE_BACKOFF_MS * 2 ** attempt;
+    console.warn(
+      `  flyctl ${args[0] ?? ""} ${args[1] ?? ""} hit a transient error ` +
+        `(attempt ${attempt + 1}/${MAX_RETRIES + 1}); retrying in ${backoff}ms… ` +
+        `[${(result.stderr || result.stdout).trim().split("\n").pop() ?? ""}]`,
+    );
+    sleepSync(backoff);
+  }
+  // Unreachable but keeps the type checker happy.
+  throw new FlyctlError(args, result!);
+}
+
+/** Same as `flyctl` but returns the exit code instead of throwing. No retry. */
 export function flyctlSafe(args: readonly string[], options: FlyctlOptions = {}): FlyctlResult {
   return runFlyctl(args, options);
 }
