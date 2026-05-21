@@ -483,8 +483,8 @@ export const PROJECTS: readonly Project[] = [
     description:
       "Rust implementation of the moviefinder.app movie discovery platform.",
     imageAlt: IMAGE_ALT,
-    imageSrc: [],
-    galleryImageSrc: [],
+    imageSrc: ["/moviefinder-app-rust-screenshot.optimized.webp"],
+    galleryImageSrc: ["/moviefinder-app-rust-screenshot.png"],
     topics: ["rust"],
     githubRepo: "crvouga/moviefinder.app-rust",
     hostname: "moviefinder-app-rust.chrisvouga.dev",
@@ -505,8 +505,8 @@ export const PROJECTS: readonly Project[] = [
     description:
       "Go implementation of the moviefinder.app movie discovery platform.",
     imageAlt: IMAGE_ALT,
-    imageSrc: [],
-    galleryImageSrc: [],
+    imageSrc: ["/moviefinder-app-go-screenshot.optimized.webp"],
+    galleryImageSrc: ["/moviefinder-app-go-screenshot.png"],
     topics: ["go"],
     githubRepo: "crvouga/moviefinder.app-go",
     hostname: "moviefinder-app-go.chrisvouga.dev",
@@ -527,8 +527,8 @@ export const PROJECTS: readonly Project[] = [
     description:
       "React implementation of the moviefinder.app movie discovery platform.",
     imageAlt: IMAGE_ALT,
-    imageSrc: [],
-    galleryImageSrc: [],
+    imageSrc: ["/moviefinder-app-react-screenshot.optimized.webp"],
+    galleryImageSrc: ["/moviefinder-app-react-screenshot.png"],
     topics: ["react", "typescript"],
     githubRepo: "crvouga/moviefinder.app-react",
     hostname: "moviefinder-app-react.chrisvouga.dev",
@@ -549,8 +549,8 @@ export const PROJECTS: readonly Project[] = [
     description:
       "ClojureScript implementation of the moviefinder.app movie discovery platform.",
     imageAlt: IMAGE_ALT,
-    imageSrc: [],
-    galleryImageSrc: [],
+    imageSrc: ["/moviefinder-app-clojurescript-screenshot.optimized.webp"],
+    galleryImageSrc: ["/moviefinder-app-clojurescript-screenshot.png"],
     topics: ["clojurescript"],
     githubRepo: "crvouga/moviefinder.app-clojurescript",
     hostname: "moviefinder-app-clojurescript.chrisvouga.dev",
