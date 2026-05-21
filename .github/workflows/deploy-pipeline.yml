@@ -111,6 +111,8 @@ jobs:
           # Need the parent commit for `git diff ${{ github.event.before }}...`.
           fetch-depth: 0
       - uses: oven-sh/setup-bun@v2
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
       - name: Typecheck
         # Cheap gate before fanning out 15+ Docker builds.
         run: bun run typecheck
