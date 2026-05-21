@@ -5,6 +5,9 @@ name: Build And Publish Images
 # specific wrappers — the same image is consumed verbatim by Fly.io.
 
 on:
+  # Trigger when something that changes the *image content* or the *list of
+  # images to build* lands on main. fly.toml is intentionally NOT here — it's
+  # consumed at deploy time, not build time, and is owned by deploy-pipeline.
   push:
     branches:
       - main
@@ -12,7 +15,6 @@ on:
       - "projects.ts"
       - "Dockerfile"
       - "nginx.conf"
-      - "fly/fly.toml.template"
       - "scripts/generate-deploy-matrix.ts"
       - ".github/workflows/build-and-publish-images.yml"
   workflow_dispatch:

@@ -6,24 +6,34 @@ name: Deploy Pipeline
 # 4) HTTP health-check every public URL.
 
 on:
+  # Run the deploy AFTER `Build And Publish Images` finishes so the freshly
+  # built image is on ghcr.io by the time Fly tries to pull it. Replaces the
+  # previous `push` trigger which raced the build and frequently asked Fly to
+  # pull a tag that didn't exist yet.
+  workflow_run:
+    workflows: ["Build And Publish Images"]
+    types: [completed]
+    branches: [main]
+  # Push trigger for changes that don't require a rebuild (orchestrator
+  # scripts, the Fly template, workflow itself). These deploys reuse the
+  # current `:latest` images on ghcr.io.
   push:
     branches:
       - main
     paths:
-      - "projects.ts"
       - "fly/fly.toml.template"
       - "scripts/fly/**"
       - "scripts/cloudflare/**"
       - "scripts/lib/**"
-      - "scripts/generate-deploy-matrix.ts"
       - "scripts/health-check-urls.ts"
       - ".github/workflows/deploy-pipeline.yml"
   workflow_dispatch:
     inputs:
       image_tag:
-        description: "Image tag to deploy (defaults to current commit SHA)."
+        description: "Image tag to deploy. Defaults to 'latest' (the most recent successful build)."
         required: false
         type: string
+        default: "latest"
       project_id:
         description: "Deploy a single project id (matches `projects.ts`); leave blank to deploy all."
         required: false
@@ -45,12 +55,46 @@ env:
   FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
   CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
   CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+  # When triggered by `workflow_run`, the default GITHUB_REF is the branch
+  # tip rather than the build's source SHA. Pin every checkout (and the image
+  # tag) to the SHA the build actually used so the deploy-time projects.ts
+  # matches the image set on ghcr.io.
+  CHECKOUT_REF: ${{ github.event.workflow_run.head_sha || github.sha }}
 
 jobs:
+  # Skip everything if the upstream `Build And Publish Images` workflow failed
+  # — there are no fresh images to deploy.
+  guard:
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ steps.tag.outputs.image_tag }}
+    steps:
+      - id: tag
+        env:
+          DISPATCH_TAG: ${{ inputs.image_tag }}
+          BUILD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -euo pipefail
+          # Priority: explicit workflow_dispatch input → workflow_run head SHA
+          # (newly-built image) → 'latest' fallback for plain push triggers.
+          if [ -n "${DISPATCH_TAG:-}" ]; then
+            TAG="$DISPATCH_TAG"
+          elif [ -n "${BUILD_SHA:-}" ]; then
+            TAG="$BUILD_SHA"
+          else
+            TAG="latest"
+          fi
+          echo "Resolved image tag: $TAG"
+          echo "image_tag=$TAG" >> "$GITHUB_OUTPUT"
+
   cloudflare-dns-sync:
+    needs: guard
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ env.CHECKOUT_REF }}
       - uses: oven-sh/setup-bun@v2
       - name: Reconcile Cloudflare DNS
         run: |
@@ -63,7 +107,7 @@ jobs:
 
   fly-secrets-sync:
     runs-on: ubuntu-latest
-    needs: cloudflare-dns-sync
+    needs: [guard, cloudflare-dns-sync]
     env:
       TMDB_API_READ_ACCESS_TOKEN: ${{ secrets.TMDB_API_READ_ACCESS_TOKEN }}
       TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
@@ -71,6 +115,8 @@ jobs:
       TWILIO_SERVICE_SID: ${{ secrets.TWILIO_SERVICE_SID }}
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ env.CHECKOUT_REF }}
       - uses: oven-sh/setup-bun@v2
       - uses: superfly/flyctl-actions/setup-flyctl@master
       - name: Push secrets to Fly apps
@@ -84,11 +130,13 @@ jobs:
 
   configure:
     runs-on: ubuntu-latest
-    needs: fly-secrets-sync
+    needs: [guard, fly-secrets-sync]
     outputs:
       matrix: ${{ steps.matrix.outputs.matrix }}
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ env.CHECKOUT_REF }}
       - uses: oven-sh/setup-bun@v2
       - id: matrix
         env:
@@ -109,17 +157,19 @@ jobs:
 
   fly-deploy:
     runs-on: ubuntu-latest
-    needs: configure
+    needs: [guard, configure]
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.configure.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ env.CHECKOUT_REF }}
       - uses: oven-sh/setup-bun@v2
       - uses: superfly/flyctl-actions/setup-flyctl@master
       - name: Deploy ${{ matrix.id }} to Fly
         env:
-          IMAGE_TAG: ${{ inputs.image_tag || github.sha }}
+          IMAGE_TAG: ${{ needs.guard.outputs.image_tag }}
         run: |
           set -euo pipefail
           bun run scripts/fly/deploy-app.ts \
@@ -132,6 +182,8 @@ jobs:
     if: ${{ always() && needs.fly-deploy.result != 'cancelled' }}
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ env.CHECKOUT_REF }}
       - uses: oven-sh/setup-bun@v2
       - name: Wait for Fly machines + cert
         run: sleep 30
