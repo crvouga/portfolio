@@ -31,7 +31,13 @@
   },
   "devDependencies": {
     "@types/bun": "latest",
+    "listr2": "^10.2.1",
+    "p-limit": "^7.3.0",
+    "picocolors": "^1.1.1",
     "playwright": "^1.48.0",
+    "pretty-bytes": "^7.1.0",
+    "pretty-ms": "^9.3.0",
+    "sharp": "^0.34.5",
     "typescript": "^5.9.3"
   }
 }
