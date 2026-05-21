@@ -18,6 +18,7 @@ import { CONTENT } from "../src/content/content";
 import { PROJECTS } from "../src/content/project";
 import { WORK } from "../src/content/work";
 import {
+  deployHealthCheck,
   deployScaleToZero,
   getInfraTargets,
   getScaleToZeroHostnames,
@@ -234,7 +235,9 @@ async function checkUrlWithRetries(url: string, args: Args): Promise<UrlCheckRes
 
 /** Sequential GETs to wake suspended Fly machines before the parallel sweep. */
 async function warmupFlyApps(args: Args): Promise<void> {
-  const targets = getInfraTargets().filter((t) => deployScaleToZero(t.deploy));
+  const targets = getInfraTargets().filter(
+    (t) => deployHealthCheck(t.deploy) && deployScaleToZero(t.deploy),
+  );
   console.log(
     `\n🔥 Warmup: waking ${targets.length} scale-to-zero Fly target(s) ` +
       `(timeout=${args.warmupTimeoutMs}ms each, sequential)\n`,
@@ -271,6 +274,9 @@ const extractUrls = (): string[] => {
 
   for (const project of PROJECTS) {
     if (project.deployment?.t === "public" && project.deployment.url) {
+      if (project.deploy != null && !deployHealthCheck(project.deploy)) {
+        continue;
+      }
       urls.add(project.deployment.url);
     }
     if (project.code?.t === "public" && project.code.url) {

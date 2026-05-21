@@ -120,8 +120,7 @@ HEAD.push(
   tag("style", {}, [
     text(`
       .youtube-video-container {
-        width: 100%;
-        margin-top: ${unit(3)};
+        width: 100%;        
         position: relative;
         padding-bottom: 56.25%; /* 16:9 aspect ratio */
         height: 0;

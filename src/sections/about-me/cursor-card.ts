@@ -11,7 +11,7 @@ export const viewAboutCursorCard: View = () => {
     viewYouTubeVideo({
       src: CONTENT.ABOUT_YOUTUBE_EMBED_URL,
       title: CONTENT.ABOUT_YOUTUBE_VIDEO_TITLE,
-    })(),
+    })({ class: "about-cursor-card-video" }),
     viewCardContent({}, [
       tag("div", { class: "about-cursor-card-badge" }, [
         text("Recognized by Cursor"),
@@ -41,6 +41,10 @@ HEAD.push(
         border: 1px solid rgba(127, 179, 255, 0.22);
         border-radius: var(--radius-pill);
         align-self: flex-start;
+      }
+
+      .about-cursor-card-video {
+        margin-top: 0;
       }
     `),
   ])

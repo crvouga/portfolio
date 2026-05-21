@@ -91,6 +91,8 @@ export type DeploySpec = {
    * When false, one machine stays warm (`min_machines_running = 1`).
    */
   readonly scaleToZero?: boolean;
+  /** When true, post-deploy CI health-checks this app's public URL. */
+  readonly healthCheck: boolean;
 };
 
 /** Resume curation overrides. Default: include if `projectToLinkHref` is non-null. */
@@ -333,6 +335,7 @@ export const PROJECTS: readonly Project[] = [
       githubRepo: "crvouga/pickflix-v1",
       hostname: "pickflix.chrisvouga.dev",
       port: 9000,
+      healthCheck: true,
       build: { checkoutDir: "pickflix-v1" },
       secrets: [
         // Legacy noop placeholders — the app needs these env vars set to
@@ -367,6 +370,26 @@ export const PROJECTS: readonly Project[] = [
     topics: ["bootstrap", "drupal", "javascript", "react", "css", "php"],
   },
   {
+    id: "moviefinder-app-rust",
+    title: "moviefinder.app (Rust)",
+    setting: "side",
+    deployment: { t: "public", url: "https://moviefinder-app-rust.chrisvouga.dev" },
+    code: { t: "public", url: "https://github.com/crvouga/moviefinder.app-rust" },
+    description:
+      "Rust implementation of the moviefinder.app movie discovery platform.",
+    imageAlt: IMAGE_ALT,
+    imageSrc: ["/moviefinder-app-rust-screenshot.optimized.webp"],
+    galleryImageSrc: ["/moviefinder-app-rust-screenshot.png"],
+    topics: ["rust"],
+    deploy: {
+      githubRepo: "crvouga/moviefinder.app-rust",
+      hostname: "moviefinder-app-rust.chrisvouga.dev",
+      port: 3000,
+      healthCheck: true,
+      secrets: moviefinderSecrets,
+    },
+  },
+  {
     id: "headless-combobox-svelte-example",
     title: "headless-combobox",
     setting: "side",
@@ -382,6 +405,7 @@ export const PROJECTS: readonly Project[] = [
       githubRepo: "crvouga/headless-combobox",
       hostname: "svelte.headlesscombobox.chrisvouga.dev",
       port: 80,
+      healthCheck: true,
       // Dockerfile lives inside a sub-directory of the repo.
       build: { context: "example/svelte", dockerfile: "example/svelte/Dockerfile" },
     },
@@ -402,6 +426,7 @@ export const PROJECTS: readonly Project[] = [
       githubRepo: "crvouga/headless-combobox",
       hostname: "headlesscombobox.chrisvouga.dev",
       port: 80,
+      healthCheck: true,
     },
   },
   {
@@ -420,6 +445,7 @@ export const PROJECTS: readonly Project[] = [
       githubRepo: "crvouga/todo-v1",
       hostname: "todo.chrisvouga.dev",
       port: 80,
+      healthCheck: true,
       // Repo basename is "todo-v1"; explicit so it survives a repo rename.
       build: { checkoutDir: "todo-v1" },
     },
@@ -440,6 +466,7 @@ export const PROJECTS: readonly Project[] = [
       githubRepo: "crvouga/image-service",
       hostname: "imageservice.chrisvouga.dev",
       port: 80,
+      healthCheck: true,
     },
   },
   {
@@ -465,13 +492,15 @@ export const PROJECTS: readonly Project[] = [
       githubRepo: "crvouga/connect-four",
       hostname: "connectfour.chrisvouga.dev",
       port: 80,
+      healthCheck: true,
     },
   },
   {
     id: "normalizer-app",
     title: "normalizer.app",
     setting: "side",
-    deployment: { t: "public", url: "https://normalizer.chrisvouga.dev/" },
+    // deployment: { t: "public", url: "https://normalizer.chrisvouga.dev/" },
+    deployment: { t: "not-deployed-anymore" },
     code: { t: "public", url: "https://github.com/crvouga/normalizer.app.git" },
     description:
       "A web application that automates data normalization workflows, transforming tabular data (Excel, CSV) between schemas without manual Excel manipulation or custom Python scripts. Streamlines data processing for teams handling diverse data formats.",
@@ -484,6 +513,7 @@ export const PROJECTS: readonly Project[] = [
       hostname: "normalizer.chrisvouga.dev",
       port: 8080,
       scaleToZero: false,
+      healthCheck: false,
       secrets: [
         fromGithub("OPENAI_API_KEY"),
         // Server emits absolute URLs in OpenAPI/redirect responses; derive from
@@ -599,6 +629,7 @@ export const PROJECTS: readonly Project[] = [
       githubRepo: "crvouga/anime",
       hostname: "anime.chrisvouga.dev",
       port: 80,
+      healthCheck: true,
       // Repo basename is "anime"; explicit for clarity.
       build: { checkoutDir: "anime" },
     },
@@ -623,6 +654,7 @@ export const PROJECTS: readonly Project[] = [
       githubRepo: "crvouga/snake",
       hostname: "snake.chrisvouga.dev",
       port: 80,
+      healthCheck: true,
     },
   },
   {
@@ -644,27 +676,10 @@ export const PROJECTS: readonly Project[] = [
       githubRepo: "crvouga/match-three",
       hostname: "matchthree.chrisvouga.dev",
       port: 80,
+      healthCheck: true,
     },
   },
-  {
-    id: "moviefinder-app-rust",
-    title: "moviefinder.app (Rust)",
-    setting: "side",
-    deployment: { t: "public", url: "https://moviefinder-app-rust.chrisvouga.dev" },
-    code: { t: "public", url: "https://github.com/crvouga/moviefinder.app-rust" },
-    description:
-      "Rust implementation of the moviefinder.app movie discovery platform.",
-    imageAlt: IMAGE_ALT,
-    imageSrc: ["/moviefinder-app-rust-screenshot.optimized.webp"],
-    galleryImageSrc: ["/moviefinder-app-rust-screenshot.png"],
-    topics: ["rust"],
-    deploy: {
-      githubRepo: "crvouga/moviefinder.app-rust",
-      hostname: "moviefinder-app-rust.chrisvouga.dev",
-      port: 3000,
-      secrets: moviefinderSecrets,
-    },
-  },
+
   {
     id: "moviefinder-app-go",
     title: "moviefinder.app (Go)",
@@ -681,6 +696,7 @@ export const PROJECTS: readonly Project[] = [
       githubRepo: "crvouga/moviefinder.app-go",
       hostname: "moviefinder-app-go.chrisvouga.dev",
       port: 8080,
+      healthCheck: true,
       secrets: moviefinderSecrets,
     },
   },
@@ -700,6 +716,7 @@ export const PROJECTS: readonly Project[] = [
       githubRepo: "crvouga/moviefinder.app-react",
       hostname: "moviefinder-app-react.chrisvouga.dev",
       port: 3000,
+      healthCheck: true,
       secrets: moviefinderSecrets,
     },
   },
@@ -719,6 +736,7 @@ export const PROJECTS: readonly Project[] = [
       githubRepo: "crvouga/moviefinder.app-clojurescript",
       hostname: "moviefinder-app-clojurescript.chrisvouga.dev",
       port: 9630,
+      healthCheck: true,
       secrets: moviefinderSecrets,
     },
   },
@@ -741,6 +759,7 @@ export const PROJECTS: readonly Project[] = [
       githubRepo: "crvouga/simon-says",
       hostname: "simonsays.chrisvouga.dev",
       port: 80,
+      healthCheck: true,
     },
   },
   {
@@ -812,6 +831,7 @@ export const PORTFOLIO_INFRA_TARGET: InfraTarget = {
     githubRepo: "crvouga/chrisvouga.dev",
     hostname: "www.chrisvouga.dev",
     port: 80,
+    healthCheck: true,
   },
 };
 
@@ -825,11 +845,15 @@ export function deployScaleToZero(deploy: DeploySpec): boolean {
   return deploy.scaleToZero !== false;
 }
 
+export function deployHealthCheck(deploy: DeploySpec): boolean {
+  return deploy.healthCheck;
+}
+
 /** Hostnames for Fly apps that suspend on idle (screenshot/health warmup). */
 export function getScaleToZeroHostnames(): ReadonlySet<string> {
   return new Set(
     getInfraTargets()
-      .filter((t) => deployScaleToZero(t.deploy))
+      .filter((t) => deployHealthCheck(t.deploy) && deployScaleToZero(t.deploy))
       .map((t) => t.deploy.hostname.toLowerCase()),
   );
 }

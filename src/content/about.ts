@@ -13,7 +13,7 @@ When I'm not coding, I play the drums in a ${BAND_A_TAG}.`;
 export const ABOUT_ME_ATTR_SAFE = ABOUT_ME.replace(BAND_A_TAG, "band");
 
 export const ABOUT_YOUTUBE_VIDEO_ID = "7rHHSdnvX94";
-export const ABOUT_YOUTUBE_EMBED_URL = `https://www.youtube.com/embed/${ABOUT_YOUTUBE_VIDEO_ID}`;
+export const ABOUT_YOUTUBE_EMBED_URL = `https://www.youtube.com/embed/${ABOUT_YOUTUBE_VIDEO_ID}?modestbranding=1&rel=0&playsinline=1&iv_load_policy=3`;
 export const ABOUT_YOUTUBE_VIDEO_TITLE = "Cursor AI gift video";
 export const ABOUT_CURSOR_GIFT_TEXT =
   "Recognized by Cursor as one of their top tab users, with a custom tab button shipped as a gift.";

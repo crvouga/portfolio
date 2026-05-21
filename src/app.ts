@@ -101,7 +101,7 @@ HEAD.push(
         flex-direction: column;
         gap: 128px;
         padding: 128px var(--page-pad) 96px;
-        overflow-x: hidden;
+        overflow-x: clip;
       }
 
       @media (max-width: 900px) {
