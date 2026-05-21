@@ -33,6 +33,7 @@
     "@types/bun": "latest",
     "listr2": "^10.2.1",
     "p-limit": "^7.3.0",
+    "pdf-lib": "^1.17.1",
     "picocolors": "^1.1.1",
     "playwright": "^1.48.0",
     "pretty-bytes": "^7.1.0",

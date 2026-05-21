@@ -3,6 +3,7 @@
  * orchestrator script needs (Fly app, Cloudflare zone, expected fly.dev CNAME
  * target). Keeps the rest of the scripts free of string fiddling.
  */
+import { randomBytes } from "node:crypto";
 import {
   cloudflareZoneForHostname,
   flyAppName,
@@ -59,6 +60,7 @@ export const GITHUB_REPO_APP_SECRETS = [
   "TWILIO_ACCOUNT_SID",
   "TWILIO_AUTH_TOKEN",
   "TWILIO_SERVICE_SID",
+  "OPENAI_API_KEY",
 ] as const;
 
 export type GithubRepoAppSecret = (typeof GITHUB_REPO_APP_SECRETS)[number];
@@ -83,4 +85,40 @@ export function hardcodedSecretValue(projectId: string, secret: string): string 
     return PICKFLIX_HARDCODED_SECRETS[secret] ?? null;
   }
   return null;
+}
+
+// ---------------------------------------------------------------------------
+// Per-project derived secrets
+// ---------------------------------------------------------------------------
+//
+// Some secrets are too project-specific to live on the GitHub allow-list:
+//
+//  - "computed":   deterministic, derived from the project itself (e.g. base
+//                  URL = https://<hostname>). Re-running the sync always
+//                  produces the same value so it's safe to overwrite.
+//  - "generated":  random value created by us. Must be set ONCE per app and
+//                  preserved across deploys (otherwise we'd invalidate
+//                  signed URLs / sessions / etc on every deploy). The
+//                  sync-secrets script checks Fly's existing secret list and
+//                  skips re-staging if the name is already present.
+
+export type SecretSource =
+  | { readonly t: "computed"; readonly compute: (target: DeployTarget) => string }
+  | { readonly t: "generated"; readonly generate: () => string };
+
+const PROJECT_SECRET_SOURCES: Readonly<Record<string, Readonly<Record<string, SecretSource>>>> = {
+  "normalizer-app": {
+    SERVER_BASE_URL: {
+      t: "computed",
+      compute: (target) => `https://${target.hostname}`,
+    },
+    OBJECT_STORE_PRESIGNED_URL_SECRET: {
+      t: "generated",
+      generate: () => randomBytes(32).toString("hex"), // matches `openssl rand -hex 32`
+    },
+  },
+};
+
+export function projectSecretSource(projectId: string, secretName: string): SecretSource | null {
+  return PROJECT_SECRET_SOURCES[projectId]?.[secretName] ?? null;
 }

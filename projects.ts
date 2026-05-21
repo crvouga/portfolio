@@ -334,6 +334,11 @@ export const PROJECTS: readonly Project[] = [
     githubRepo: "crvouga/normalizer.app",
     hostname: "normalizer.chrisvouga.dev",
     port: 8080,
+    secrets: [
+      "OPENAI_API_KEY",
+      "SERVER_BASE_URL",
+      "OBJECT_STORE_PRESIGNED_URL_SECRET",
+    ],
   },
   {
     id: "airr",
