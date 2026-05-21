@@ -1,19 +1,18 @@
-import { mkdir } from "fs/promises";
-import { CONTENT } from "./content/content";
+import { mkdir } from "node:fs/promises";
 import { PUBLIC_DIR, runScreenshotJobs } from "./screenshot-helpers";
+import { buildMainSiteJobs } from "./screenshot-jobs";
 
 const main = async (): Promise<void> => {
   console.log("Starting screenshot capture for main site...\n");
   await mkdir(PUBLIC_DIR, { recursive: true });
 
-  if (!CONTENT.SITE_URL) {
+  const jobs = buildMainSiteJobs();
+  if (jobs.length === 0) {
     console.log("No SITE_URL configured; nothing to capture.");
     return;
   }
 
-  await runScreenshotJobs("main-site", [
-    { name: "Main Site", url: CONTENT.SITE_URL, filename: "main-site" },
-  ]);
+  await runScreenshotJobs("main-site", jobs);
   console.log("\n✓ Screenshot capture complete!");
 };
 

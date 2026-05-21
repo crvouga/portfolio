@@ -13,7 +13,7 @@
     "screenshot-work": "bun run ./src/screenshot-work-websites.ts",
     "screenshot-projects": "bun run ./src/screenshot-project-websites.ts",
     "screenshot-main": "bun run ./src/screenshot-main-site.ts",
-    "generate-all": "bun run screenshot-work && bun run screenshot-projects && bun run optimize-images && bun run generate-resume && bun run screenshot-main",
+    "generate-all": "bun run ./src/generate-all.ts",
     "generate-resume": "bun run ./src/generate-resume.ts",
     "preview": "docker build -t portfolio-app . && docker run -p 80:80 portfolio-app",
     "clone-projects": "bun run scripts/clone-projects.ts",

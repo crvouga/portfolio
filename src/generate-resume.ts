@@ -410,13 +410,21 @@ const generateResume = async () => {
 
     await browser.close();
 
-    console.log(`Resume generated successfully at: ${pdfPath}`);
+    return pdfPath;
   } catch (error) {
-    console.error("Error generating resume:", error);
-    process.exit(1);
+    // Re-throw so callers (orchestrator, listr2) can mark the task failed
+    // instead of taking down the whole process.
+    throw error instanceof Error ? error : new Error(String(error));
   }
 };
 
+export { generateResume };
+
 if (import.meta.main) {
-  generateResume();
+  generateResume()
+    .then((pdfPath) => console.log(`Resume generated successfully at: ${pdfPath}`))
+    .catch((err) => {
+      console.error("Error generating resume:", err);
+      process.exit(1);
+    });
 }
