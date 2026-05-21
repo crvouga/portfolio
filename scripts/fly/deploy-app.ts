@@ -114,7 +114,31 @@ function renderFlyToml(target: DeployTarget, image: string, region: string): str
 }
 
 function deploy(target: DeployTarget, image: string, configPath: string, dryRun: boolean): void {
-  const args = ["deploy", "--config", configPath, "--image", image, "--yes"];
+  // Why these flags:
+  //   --strategy immediate
+  //     Swap machines in one step without waiting for health checks. Rolling
+  //     deploys block on the old machine becoming healthy, which deadlocks if
+  //     a previous deploy left it unhealthy (wrong internal_port, slow boot,
+  //     etc.). Combined with our TCP-only health check the swap is safe.
+  //   --ha=false
+  //     One Fly Machine per app. The default creates 2 for HA, which doubles
+  //     wake-up time and cost for no real benefit on a personal portfolio.
+  //   --wait-timeout 30
+  //     Even with --strategy immediate Fly polls briefly for state. Cap at
+  //     30s so the workflow job exits quickly on success.
+  const args = [
+    "deploy",
+    "--config",
+    configPath,
+    "--image",
+    image,
+    "--strategy",
+    "immediate",
+    "--ha=false",
+    "--wait-timeout",
+    "30",
+    "--yes",
+  ];
   if (dryRun) {
     console.log(`  [dry-run] flyctl ${args.join(" ")} --app ${target.flyApp}`);
     return;
@@ -175,8 +199,11 @@ async function main(): Promise<void> {
   writeFileSync(configPath, tomlContents);
 
   console.log(
-    `Deploy ${target.id} (${args.dryRun ? "DRY-RUN" : "APPLY"}) → app=${target.flyApp} image=${image} hostname=${target.hostname}`,
+    `Deploy ${target.id} (${args.dryRun ? "DRY-RUN" : "APPLY"}) → app=${target.flyApp} image=${image} hostname=${target.hostname} port=${target.port}`,
   );
+  console.log("--- rendered fly.toml ---");
+  console.log(tomlContents);
+  console.log("--- end fly.toml ---");
 
   deploy(target, image, configPath, args.dryRun);
 

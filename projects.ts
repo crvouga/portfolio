@@ -502,7 +502,7 @@ export const PROJECTS: readonly Project[] = [
     topics: ["rust"],
     githubRepo: "crvouga/moviefinder.app-rust",
     hostname: "moviefinder-app-rust.chrisvouga.dev",
-    port: 80,
+    port: 3000,
     secrets: [
       "TMDB_API_READ_ACCESS_TOKEN",
       "TWILIO_ACCOUNT_SID",

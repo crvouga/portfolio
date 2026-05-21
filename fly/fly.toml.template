@@ -12,10 +12,19 @@ primary_region = "${REGION}"
 [build]
   image = "${IMAGE}"
 
+# Mirror the configured port into the container as PORT so apps that read
+# `PORT` from the environment (rust, go, clojurescript, node) bind to the
+# same port Fly health-checks. The static nginx images ignore this var.
+[env]
+  PORT = "${PORT}"
+
 [http_service]
   internal_port = ${PORT}
   force_https = true
-  auto_stop_machines = "stop"
+  # "suspend" pauses the VM (memory snapshot kept) so cold-wakes take seconds
+  # instead of a full cold boot. Critical for apps with embedded postgres /
+  # migration steps that take 30s+ on real "stop".
+  auto_stop_machines = "suspend"
   auto_start_machines = true
   min_machines_running = 0
   processes = ["app"]
@@ -25,13 +34,11 @@ primary_region = "${REGION}"
     soft_limit = 200
     hard_limit = 250
 
-  [[http_service.checks]]
-    grace_period = "10s"
-    interval = "30s"
-    method = "GET"
-    timeout = "5s"
-    path = "/"
+# NOTE: deliberately no [[http_service.checks]] block. Without one, Fly's
+# load-balancer only needs the internal port to accept TCP — which works
+# uniformly across the static nginx sites and the dynamic backends, even
+# during slow startups. Add app-specific HTTP checks per-project if needed.
 
 [[vm]]
   size = "shared-cpu-1x"
-  memory = "256mb"
+  memory = "512mb"

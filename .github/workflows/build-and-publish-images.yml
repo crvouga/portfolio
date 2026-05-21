@@ -95,22 +95,3 @@ jobs:
             --push \
             "${{ matrix.build_context }}"
           echo "Pushed ${REPO}:latest and ${REPO}:${{ github.sha }}"
-
-  trigger-deploy:
-    needs: build-and-push
-    runs-on: ubuntu-latest
-    steps:
-      - name: Dispatch deploy pipeline
-        uses: actions/github-script@v8
-        with:
-          script: |
-            await github.rest.actions.createWorkflowDispatch({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              workflow_id: 'deploy-pipeline.yml',
-              ref: context.ref,
-              inputs: {
-                image_tag: context.sha,
-                project_id: '${{ inputs.project_id }}'
-              }
-            });
