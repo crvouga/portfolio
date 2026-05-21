@@ -219,10 +219,16 @@ jobs:
         with:
           ref: ${{ env.CHECKOUT_REF }}
       - uses: oven-sh/setup-bun@v2
-      - name: Wait for Fly machines + cert
-        run: sleep 30
       - name: Health-check public URLs
-        run: bun run scripts/health-check-urls.ts
+        # Scale-to-zero Fly apps need a sequential warmup + long per-URL
+        # timeouts with retries. A fixed sleep + 10s fetch was failing on
+        # cold starts (normalizer, moviefinder-clojurescript, etc.).
+        run: |
+          bun run scripts/health-check-urls.ts \
+            --warmup-timeout-ms 180000 \
+            --fly-timeout-ms 120000 \
+            --fly-retries 8 \
+            --retry-delay-ms 8000
 
   # Verify every Fly app actually has scale-to-zero settings applied to its
   # live machines. Catches dashboard-edits, leftover HA pairs from older
