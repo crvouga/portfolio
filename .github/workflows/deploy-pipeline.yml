@@ -189,3 +189,20 @@ jobs:
         run: sleep 30
       - name: Health-check public URLs
         run: bun run scripts/health-check-urls.ts
+
+  # Verify every Fly app actually has scale-to-zero settings applied to its
+  # live machines. Catches dashboard-edits, leftover HA pairs from older
+  # deploys, and any drift in the [http_service] block. Runs even if
+  # fly-deploy partially failed so we still get a current state snapshot.
+  scale-to-zero-audit:
+    runs-on: ubuntu-latest
+    needs: fly-deploy
+    if: ${{ always() && needs.fly-deploy.result != 'cancelled' }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ env.CHECKOUT_REF }}
+      - uses: oven-sh/setup-bun@v2
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - name: Audit scale-to-zero compliance
+        run: bun run fly:audit-scale

@@ -18,7 +18,11 @@ GitHub repo ──▶ GitHub Actions
 ```
 
 - **Compute**: one Fly.io app per deploy target, name `chrisvouga-<id>`. Scale-to-zero by default
-  (`auto_stop_machines = "stop"`, `min_machines_running = 0`).
+  (`auto_stop_machines = "suspend"`, `auto_start_machines = true`, `min_machines_running = 0`,
+  deploys use `--ha=false` so each app runs at most one machine). The
+  `scale-to-zero-audit` job in `deploy-pipeline.yml` runs `fly:audit-scale`
+  after every deploy and fails the pipeline if any app drifts (e.g. a manual
+  dashboard change adds a second machine or sets a non-zero minimum).
 - **Images**: built once per deploy target and pushed to `ghcr.io/<owner>/chrisvouga-<id>`
   (the same image is consumed verbatim by Fly).
 - **DNS**: a single Cloudflare zone (`chrisvouga.dev`) with one CNAME per target
@@ -55,6 +59,8 @@ bun run fly:bootstrap                             # idempotent: create missing F
 bun run fly:sync-secrets                          # plan secrets push
 bun run fly:deploy -- --id pickflix --sha <sha>   # deploy a single app
 bun run fly:teardown                              # plan orphan Fly app cleanup
+bun run fly:audit-scale                           # verify every Fly app actually scales to zero
+bun run fly:stop-running                          # `fly machines stop` any machine still in state=started
 
 bun run decommission-cloudflare-workers           # dry-run legacy Workers teardown
 ```

@@ -176,9 +176,17 @@ export function flyAppExists(appName: string): boolean {
 }
 
 export function ensureFlyAuth(): void {
-  if (!process.env["FLY_API_TOKEN"]?.trim()) {
-    throw new Error(
-      "FLY_API_TOKEN is required. Get one with `flyctl auth token` and export it (or set as a GitHub repo secret).",
-    );
-  }
+  if (process.env["FLY_API_TOKEN"]?.trim()) return;
+
+  // No env token — fall back to whatever flyctl already has locally
+  // (`flyctl auth login`). Lets these scripts run ad-hoc on a developer
+  // machine without exporting a token.
+  const r = flyctlSafe(["auth", "whoami"]);
+  if (r.exitCode === 0) return;
+
+  throw new Error(
+    "Fly authentication is required. Either set FLY_API_TOKEN " +
+      "(`flyctl auth token` for personal use, or a GitHub repo secret in CI), " +
+      "or run `flyctl auth login` first.",
+  );
 }

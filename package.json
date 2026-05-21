@@ -23,6 +23,8 @@
     "fly:sync-secrets": "bun run scripts/fly/sync-secrets.ts",
     "fly:deploy": "bun run scripts/fly/deploy-app.ts",
     "fly:teardown": "bun run scripts/fly/teardown-apps.ts",
+    "fly:audit-scale": "bun run scripts/fly/audit-scale-to-zero.ts",
+    "fly:stop-running": "bun run scripts/fly/audit-scale-to-zero.ts --stop-running",
     "cf:setup-zone": "bun run scripts/cloudflare/setup-zone.ts",
     "cf:sync-dns": "bun run scripts/cloudflare/sync-dns.ts",
     "decommission-cloudflare-workers": "bun run scripts/decommission-cloudflare-workers.ts"
