@@ -835,6 +835,11 @@ export const PORTFOLIO_INFRA_TARGET: InfraTarget = {
   },
 };
 
+/** Apex hostname that should 301 to `PORTFOLIO_INFRA_TARGET.deploy.hostname`. */
+export function portfolioApexHostname(): string {
+  return cloudflareZoneForHostname(PORTFOLIO_INFRA_TARGET.deploy.hostname);
+}
+
 /** Fly app name for an infra target (Fly app names are globally namespaced). */
 export function flyAppName(id: string): string {
   return `chrisvouga-${id}`;

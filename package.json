@@ -28,6 +28,7 @@
     "fly:stop-running": "bun run scripts/fly/audit-scale-to-zero.ts --stop-running",
     "cf:setup-zone": "bun run scripts/cloudflare/setup-zone.ts",
     "cf:sync-dns": "bun run scripts/cloudflare/sync-dns.ts",
+    "cf:sync-redirects": "bun run scripts/cloudflare/sync-redirects.ts",
     "decommission-cloudflare-workers": "bun run scripts/decommission-cloudflare-workers.ts"
   },
   "devDependencies": {

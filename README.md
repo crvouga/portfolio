@@ -26,8 +26,9 @@ GitHub repo ──▶ GitHub Actions
 - **Images**: built once per deploy target and pushed to `ghcr.io/<owner>/chrisvouga-<id>`
   (the same image is consumed verbatim by Fly).
 - **DNS**: a single Cloudflare zone (`chrisvouga.dev`) with one CNAME per target
-  (`<sub>.chrisvouga.dev → chrisvouga-<id>.fly.dev`). Cloudflare is **DNS-only** —
-  no proxying — so Fly issues and renews the TLS certificate directly.
+  (`<sub>.chrisvouga.dev → chrisvouga-<id>.fly.dev`). Subdomains are **DNS-only**
+  (no proxying) so Fly issues TLS directly. The apex (`chrisvouga.dev`) is proxied
+  with a placeholder A record and a Cloudflare redirect rule to `www.chrisvouga.dev`.
 - **State**: [`projects.ts`](projects.ts) is the only source of truth. Every script,
   matrix, and workflow reads it.
 
@@ -55,6 +56,8 @@ bun run health-check-urls                         # GET every public URL
 bun run cf:setup-zone                             # ensure Cloudflare zone(s) exist + print NS
 bun run cf:sync-dns                               # plan DNS reconciliation
 bun run cf:sync-dns -- --apply                    # apply DNS reconciliation
+bun run cf:sync-redirects                         # plan apex → www redirect
+bun run cf:sync-redirects -- --apply                # apply apex → www redirect
 
 bun run fly:bootstrap                             # idempotent: create missing Fly apps + IPs
 bun run fly:sync-secrets                          # plan secrets push
@@ -110,7 +113,7 @@ secrets-sync step. Adding a new GitHub-sourced secret is therefore:
 | Secret | Purpose |
 | --- | --- |
 | `FLY_API_TOKEN` | `flyctl auth token`. Used by every Fly orchestrator. |
-| `CLOUDFLARE_API_TOKEN` | API token with `Zone:Edit` + `DNS:Edit` for the zone. |
+| `CLOUDFLARE_API_TOKEN` | API token with `Zone:Edit`, `DNS:Edit`, and **Dynamic URL Redirects** (or Zone Rules) write for the zone. |
 | `CLOUDFLARE_ACCOUNT_ID` | Cloudflare account that owns the zone. |
 | `CLOUDFLARE_SECRETS_STORE_ID` | Only for the legacy Workers decommission script. |
 | Anything referenced by `fromGithub(...)` in `projects.ts` | Project-specific secrets — auto-validated and forwarded to Fly. |
@@ -127,7 +130,8 @@ secrets-sync step. Adding a new GitHub-sourced secret is therefore:
    wait for delegation to propagate (`dig NS chrisvouga.dev` → Cloudflare values).
 4. **Dispatch `Deploy Pipeline` again** (or push to `main`). Bootstrap is
    idempotent: zones, Fly apps + IPs, then build and deploy everything.
-5. **Watch `Deploy Pipeline`**: Cloudflare CNAMEs are reconciled, secrets are
+5. **Watch `Deploy Pipeline`**: Cloudflare CNAMEs and the apex → www redirect are
+   reconciled, secrets are
    pushed to Fly, every app is deployed, and the health-check job confirms each
    public URL returns 200.
 

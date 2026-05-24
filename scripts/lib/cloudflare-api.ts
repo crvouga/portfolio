@@ -53,6 +53,25 @@ export type CloudflareDnsRecordInput = {
   readonly comment?: string;
 };
 
+export type CloudflareRulesetRule = {
+  readonly id?: string;
+  readonly ref?: string;
+  readonly version?: string;
+  readonly expression: string;
+  readonly description?: string;
+  readonly enabled?: boolean;
+  readonly action: string;
+  readonly action_parameters?: Record<string, unknown>;
+};
+
+export type CloudflareRuleset = {
+  readonly id: string;
+  readonly name: string;
+  readonly kind: string;
+  readonly phase: string;
+  readonly rules: readonly CloudflareRulesetRule[];
+};
+
 export class CloudflareApiError extends Error {
   constructor(
     readonly method: string,
@@ -180,6 +199,55 @@ export class CloudflareApi {
     await this.request<{ id: string }>(
       "DELETE",
       `/zones/${encodeURIComponent(zoneId)}/dns_records/${encodeURIComponent(recordId)}`,
+    );
+  }
+
+  /** Phase entrypoint ruleset, or null when the phase has not been configured yet. */
+  async getRulesetPhaseEntrypoint(
+    zoneId: string,
+    phase: string,
+  ): Promise<CloudflareRuleset | null> {
+    try {
+      return await this.request<CloudflareRuleset>(
+        "GET",
+        `/zones/${encodeURIComponent(zoneId)}/rulesets/phases/${encodeURIComponent(phase)}/entrypoint`,
+      );
+    } catch (err) {
+      if (err instanceof CloudflareApiError && err.status === 404) return null;
+      throw err;
+    }
+  }
+
+  async createRuleset(
+    zoneId: string,
+    body: {
+      readonly name: string;
+      readonly kind: "zone";
+      readonly phase: string;
+      readonly rules: readonly CloudflareRulesetRule[];
+    },
+  ): Promise<CloudflareRuleset> {
+    return this.request<CloudflareRuleset>(
+      "POST",
+      `/zones/${encodeURIComponent(zoneId)}/rulesets`,
+      body,
+    );
+  }
+
+  async updateRuleset(
+    zoneId: string,
+    rulesetId: string,
+    body: {
+      readonly name: string;
+      readonly kind: "zone";
+      readonly phase: string;
+      readonly rules: readonly CloudflareRulesetRule[];
+    },
+  ): Promise<CloudflareRuleset> {
+    return this.request<CloudflareRuleset>(
+      "PUT",
+      `/zones/${encodeURIComponent(zoneId)}/rulesets/${encodeURIComponent(rulesetId)}`,
+      body,
     );
   }
 }

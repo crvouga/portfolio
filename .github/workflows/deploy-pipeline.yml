@@ -5,7 +5,7 @@ name: Deploy Pipeline
 # teardown. Downstream scripts are idempotent — the workflow only orchestrates.
 #
 #   prepare ─┬─▶ cloudflare-zones
-#            ├─▶ cloudflare-dns-sync
+#            ├─▶ cloudflare-dns-sync (+ apex → www redirect)
 #            ├─▶ fly-bootstrap
 #            └─▶ build-and-push
 #                    │
@@ -128,6 +128,14 @@ jobs:
             ARGS+=("--apply")
           fi
           bun run cf:sync-dns "${ARGS[@]}"
+      - name: Ensure apex → www redirect
+        run: |
+          set -euo pipefail
+          ARGS=()
+          if [ "${{ inputs.apply_dns != false }}" = "true" ]; then
+            ARGS+=("--apply")
+          fi
+          bun run cf:sync-redirects "${ARGS[@]}"
 
   fly-bootstrap:
     runs-on: ubuntu-latest
