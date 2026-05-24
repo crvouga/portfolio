@@ -121,18 +121,23 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
       - name: Reconcile Cloudflare DNS
+        env:
+          # workflow_dispatch `inputs` are empty on push; always apply on main pushes.
+          CF_APPLY: ${{ github.event_name == 'push' || inputs.apply_dns != false }}
         run: |
           set -euo pipefail
           ARGS=()
-          if [ "${{ inputs.apply_dns != false }}" = "true" ]; then
+          if [ "${CF_APPLY}" = "true" ]; then
             ARGS+=("--apply")
           fi
           bun run cf:sync-dns "${ARGS[@]}"
       - name: Ensure apex → www redirect
+        env:
+          CF_APPLY: ${{ github.event_name == 'push' || inputs.apply_dns != false }}
         run: |
           set -euo pipefail
           ARGS=()
-          if [ "${{ inputs.apply_dns != false }}" = "true" ]; then
+          if [ "${CF_APPLY}" = "true" ]; then
             ARGS+=("--apply")
           fi
           bun run cf:sync-redirects "${ARGS[@]}"

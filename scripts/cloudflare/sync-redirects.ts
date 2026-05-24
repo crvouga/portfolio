@@ -99,7 +99,14 @@ function mergeRedirectRules(
   return [desired, ...rest];
 }
 
-type DnsAction =
+type DnsDeleteAction = {
+  readonly kind: "delete";
+  readonly recordId: string;
+  readonly hostname: string;
+  readonly reason: string;
+};
+
+type DnsUpsertAction =
   | { readonly kind: "create" }
   | { readonly kind: "update"; readonly recordId: string; readonly reason: string }
   | { readonly kind: "ok" };
@@ -107,7 +114,7 @@ type DnsAction =
 function planApexDns(
   zoneName: string,
   records: readonly CloudflareDnsRecord[],
-): DnsAction {
+): { readonly deletes: readonly DnsDeleteAction[]; readonly upsert: DnsUpsertAction } {
   const apexRecords = records.filter((r) => r.name === zoneName);
   const desired = {
     type: "A" as const,
@@ -115,28 +122,51 @@ function planApexDns(
     proxied: true,
   };
 
-  if (apexRecords.length === 0) return { kind: "create" };
-
-  const aRecords = apexRecords.filter((r) => r.type === "A");
-  const primary = aRecords[0];
-  if (!primary) {
-    return { kind: "update", recordId: apexRecords[0]!.id, reason: "replace non-A apex with proxied A" };
+  const matchingA = apexRecords.filter(
+    (r) =>
+      r.type === "A" &&
+      r.content === desired.content &&
+      r.proxied === desired.proxied,
+  );
+  const deletes: DnsDeleteAction[] = [];
+  for (const r of apexRecords) {
+    if (matchingA.some((m) => m.id === r.id)) continue;
+    deletes.push({
+      kind: "delete",
+      recordId: r.id,
+      hostname: r.name,
+      reason: `${r.type} ${r.content} proxied=${r.proxied}`,
+    });
   }
 
-  const drifts: string[] = [];
-  if (primary.content !== desired.content) drifts.push(`content ${primary.content} → ${desired.content}`);
-  if (primary.proxied !== desired.proxied) drifts.push(`proxied ${primary.proxied} → ${desired.proxied}`);
-  if (drifts.length > 0) {
-    return { kind: "update", recordId: primary.id, reason: drifts.join(", ") };
+  if (matchingA.length > 0) {
+    return { deletes, upsert: { kind: "ok" } };
   }
-  return { kind: "ok" };
+  if (apexRecords.length === deletes.length) {
+    return { deletes, upsert: { kind: "create" } };
+  }
+  const leftover = apexRecords.find((r) => !deletes.some((d) => d.recordId === r.id));
+  if (leftover?.type === "A") {
+    const drifts: string[] = [];
+    if (leftover.content !== desired.content) {
+      drifts.push(`content ${leftover.content} → ${desired.content}`);
+    }
+    if (leftover.proxied !== desired.proxied) {
+      drifts.push(`proxied ${leftover.proxied} → ${desired.proxied}`);
+    }
+    return {
+      deletes,
+      upsert: { kind: "update", recordId: leftover.id, reason: drifts.join(", ") },
+    };
+  }
+  return { deletes, upsert: { kind: "create" } };
 }
 
 async function applyApexDns(
   cf: CloudflareApi,
   zoneId: string,
   zoneName: string,
-  action: DnsAction,
+  plan: { readonly deletes: readonly DnsDeleteAction[]; readonly upsert: DnsUpsertAction },
 ): Promise<void> {
   const input = {
     name: zoneName,
@@ -146,12 +176,15 @@ async function applyApexDns(
     ttl: 1,
     comment: MANAGED_COMMENT,
   };
-  switch (action.kind) {
+  for (const del of plan.deletes) {
+    await cf.deleteDnsRecord(zoneId, del.recordId);
+  }
+  switch (plan.upsert.kind) {
     case "create":
       await cf.createDnsRecord(zoneId, input);
       return;
     case "update":
-      await cf.updateDnsRecord(zoneId, action.recordId, input);
+      await cf.updateDnsRecord(zoneId, plan.upsert.recordId, input);
       return;
     case "ok":
       return;
@@ -218,25 +251,34 @@ async function main(): Promise<void> {
   let errors = 0;
 
   const records = await cf.listDnsRecords(zone.id);
-  const dnsAction = planApexDns(zoneName, records);
-  const dnsLine =
-    dnsAction.kind === "ok"
-      ? `OK     apex ${zoneName} A ${APEX_PLACEHOLDER_IPV4} proxied`
-      : dnsAction.kind === "create"
-        ? `CREATE apex ${zoneName} A ${APEX_PLACEHOLDER_IPV4} proxied=true`
-        : `UPDATE apex ${zoneName}: ${dnsAction.reason}`;
+  const dnsPlan = planApexDns(zoneName, records);
+  const dnsLines: string[] = [];
+  for (const del of dnsPlan.deletes) {
+    dnsLines.push(`DELETE ${del.hostname} (${del.reason})`);
+  }
+  if (dnsPlan.upsert.kind === "ok") {
+    dnsLines.push(`OK     apex ${zoneName} A ${APEX_PLACEHOLDER_IPV4} proxied`);
+  } else if (dnsPlan.upsert.kind === "create") {
+    dnsLines.push(`CREATE apex ${zoneName} A ${APEX_PLACEHOLDER_IPV4} proxied=true`);
+  } else {
+    dnsLines.push(`UPDATE apex ${zoneName}: ${dnsPlan.upsert.reason}`);
+  }
+  const dnsChanged =
+    dnsPlan.deletes.length > 0 || dnsPlan.upsert.kind !== "ok";
   console.log(`\n[apex DNS]`);
-  if (dnsAction.kind === "ok") {
-    console.log(`  ${dnsLine}`);
+  if (!dnsChanged) {
+    console.log(`  ${dnsLines[0]}`);
   } else if (!args.apply) {
-    console.log(`  [plan] ${dnsLine}`);
+    for (const line of dnsLines) console.log(`  [plan] ${line}`);
   } else {
     try {
-      await applyApexDns(cf, zone.id, zoneName, dnsAction);
-      console.log(`  [done] ${dnsLine}`);
+      await applyApexDns(cf, zone.id, zoneName, dnsPlan);
+      for (const line of dnsLines) console.log(`  [done] ${line}`);
     } catch (err) {
       errors += 1;
-      console.error(`  [fail] ${dnsLine} — ${err instanceof Error ? err.message : err}`);
+      console.error(
+        `  [fail] apex DNS — ${err instanceof Error ? err.message : err}`,
+      );
     }
   }
 
