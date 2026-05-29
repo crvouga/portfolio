@@ -67,9 +67,11 @@ permissions:
   contents: read
 
 env:
-  FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
-  CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-  CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+  # Single credential the whole pipeline needs from GitHub. The Doppler CLI
+  # auto-detects DOPPLER_TOKEN; the service token is scoped to one project +
+  # config, so every `doppler run` below injects FLY_API_TOKEN, CLOUDFLARE_*,
+  # and all app secrets without any per-secret YAML.
+  DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
   IMAGE_TAG: ${{ inputs.image_tag || github.sha }}
 
 jobs:
@@ -101,6 +103,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: oven-sh/setup-bun@v2
+      - uses: dopplerhq/cli-action@v3
       - name: Install dependencies
         run: bun install --frozen-lockfile
       - name: Ensure zones + print nameservers
@@ -110,7 +113,7 @@ jobs:
           if [ "${{ inputs.dry_run }}" = "true" ]; then
             ARGS+=("--dry-run")
           fi
-          bun run cf:setup-zone "${ARGS[@]}"
+          doppler run -- bun run cf:setup-zone "${ARGS[@]}"
 
   cloudflare-dns-sync:
     runs-on: ubuntu-latest
@@ -118,6 +121,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: oven-sh/setup-bun@v2
+      - uses: dopplerhq/cli-action@v3
       - name: Install dependencies
         run: bun install --frozen-lockfile
       - name: Reconcile Cloudflare DNS
@@ -130,7 +134,7 @@ jobs:
           if [ "${CF_APPLY}" = "true" ]; then
             ARGS+=("--apply")
           fi
-          bun run cf:sync-dns "${ARGS[@]}"
+          doppler run -- bun run cf:sync-dns "${ARGS[@]}"
       - name: Ensure apex → www redirect
         env:
           CF_APPLY: ${{ github.event_name == 'push' || inputs.apply_dns != false }}
@@ -140,7 +144,7 @@ jobs:
           if [ "${CF_APPLY}" = "true" ]; then
             ARGS+=("--apply")
           fi
-          bun run cf:sync-redirects "${ARGS[@]}"
+          doppler run -- bun run cf:sync-redirects "${ARGS[@]}"
 
   fly-bootstrap:
     runs-on: ubuntu-latest
@@ -149,6 +153,7 @@ jobs:
       - uses: actions/checkout@v5
       - uses: oven-sh/setup-bun@v2
       - uses: superfly/flyctl-actions/setup-flyctl@master
+      - uses: dopplerhq/cli-action@v3
       - name: Install dependencies
         run: bun install --frozen-lockfile
       - name: Bootstrap Fly apps + IPs
@@ -160,7 +165,7 @@ jobs:
           if [ "${{ inputs.dry_run }}" = "true" ]; then
             ARGS+=("--dry-run")
           fi
-          bun run fly:bootstrap "${ARGS[@]}"
+          doppler run -- bun run fly:bootstrap "${ARGS[@]}"
 
   build-and-push:
     runs-on: ubuntu-latest
@@ -217,16 +222,15 @@ jobs:
         && needs.fly-bootstrap.result != 'failure'
         && needs.fly-bootstrap.result != 'cancelled'
       }}
-    env:
-      ALL_GITHUB_SECRETS: ${{ toJSON(secrets) }}
     steps:
       - uses: actions/checkout@v5
       - uses: oven-sh/setup-bun@v2
       - uses: superfly/flyctl-actions/setup-flyctl@master
+      - uses: dopplerhq/cli-action@v3
       - name: Install dependencies
         run: bun install --frozen-lockfile
-      - name: Validate + re-export GitHub-sourced secrets
-        run: bun run scripts/check-github-secrets.ts
+      - name: Validate Doppler-sourced secrets
+        run: doppler run -- bun run scripts/check-doppler-secrets.ts
       - name: Push secrets to Fly apps
         env:
           PROJECT_ID: ${{ inputs.project_id }}
@@ -236,7 +240,7 @@ jobs:
           if [ -n "${PROJECT_ID:-}" ]; then
             ARGS+=("--id" "${PROJECT_ID}")
           fi
-          bun run fly:sync-secrets "${ARGS[@]}"
+          doppler run -- bun run fly:sync-secrets "${ARGS[@]}"
 
   fly-deploy:
     runs-on: ubuntu-latest
@@ -253,12 +257,13 @@ jobs:
       - uses: actions/checkout@v5
       - uses: oven-sh/setup-bun@v2
       - uses: superfly/flyctl-actions/setup-flyctl@master
+      - uses: dopplerhq/cli-action@v3
       - name: Install dependencies
         run: bun install --frozen-lockfile
       - name: Deploy ${{ matrix.id }} to Fly
         run: |
           set -euo pipefail
-          bun run fly:deploy \
+          doppler run -- bun run fly:deploy \
             --id "${{ matrix.id }}" \
             --image "${{ matrix.image_repo }}:${{ env.IMAGE_TAG }}"
 
@@ -287,10 +292,11 @@ jobs:
       - uses: actions/checkout@v5
       - uses: oven-sh/setup-bun@v2
       - uses: superfly/flyctl-actions/setup-flyctl@master
+      - uses: dopplerhq/cli-action@v3
       - name: Install dependencies
         run: bun install --frozen-lockfile
       - name: Audit scale-to-zero compliance
-        run: bun run fly:audit-scale
+        run: doppler run -- bun run fly:audit-scale
 
   fly-teardown:
     runs-on: ubuntu-latest
@@ -300,6 +306,7 @@ jobs:
       - uses: actions/checkout@v5
       - uses: oven-sh/setup-bun@v2
       - uses: superfly/flyctl-actions/setup-flyctl@master
+      - uses: dopplerhq/cli-action@v3
       - name: Install dependencies
         run: bun install --frozen-lockfile
       - name: Tear down orphan Fly apps
@@ -312,4 +319,4 @@ jobs:
           if [ "${FORCE_TEARDOWN}" = "true" ]; then
             ARGS+=("--force")
           fi
-          bun run fly:teardown "${ARGS[@]}" --json
+          doppler run -- bun run fly:teardown "${ARGS[@]}" --json

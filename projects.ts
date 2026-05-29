@@ -47,14 +47,14 @@ export type SecretCtx = {
  * Where the value of a Fly secret comes from. The deploy pipeline dispatches
  * on `t` to resolve a value at sync time:
  *
- *   - "github":    process.env[name] (a GitHub Actions repo secret of the same name).
+ *   - "doppler":   process.env[name], injected by `doppler run` in CI (and locally).
  *   - "literal":   inline constant value (e.g. legacy noop placeholders).
  *   - "computed":  derived from the project (deterministic; re-evaluated each sync).
  *   - "generated": random bytes; SET ONCE per app and PRESERVED across deploys
  *                  so things like signed-URL keys aren't invalidated on every push.
  */
 export type SecretSource =
-  | { readonly t: "github" }
+  | { readonly t: "doppler" }
   | { readonly t: "literal"; readonly value: string }
   | { readonly t: "computed"; readonly compute: (ctx: SecretCtx) => string }
   | { readonly t: "generated"; readonly generate: () => string };
@@ -163,9 +163,9 @@ export const projectToLinkHref = (project: Project): string | null => {
 // Secret-source helpers — short factories so projects below stay readable.
 // ---------------------------------------------------------------------------
 
-const fromGithub = (name: string): SecretSpec => ({
+const fromDoppler = (name: string): SecretSpec => ({
   name,
-  source: { t: "github" },
+  source: { t: "doppler" },
 });
 
 const literal = (name: string, value: string): SecretSpec => ({
@@ -188,10 +188,10 @@ const randomHex32 = () => randomBytes(32).toString("hex");
 
 /** Standard moviefinder secrets (TMDB + Twilio). */
 const moviefinderSecrets: readonly SecretSpec[] = [
-  fromGithub("TMDB_API_READ_ACCESS_TOKEN"),
-  fromGithub("TWILIO_ACCOUNT_SID"),
-  fromGithub("TWILIO_AUTH_TOKEN"),
-  fromGithub("TWILIO_SERVICE_SID"),
+  fromDoppler("TMDB_API_READ_ACCESS_TOKEN"),
+  fromDoppler("TWILIO_ACCOUNT_SID"),
+  fromDoppler("TWILIO_AUTH_TOKEN"),
+  fromDoppler("TWILIO_SERVICE_SID"),
 ];
 
 // ---------------------------------------------------------------------------
@@ -349,7 +349,7 @@ export const PROJECTS: readonly Project[] = [
         literal("SEND_GRID_REGISTERED_EMAIL_ADDRESS", "noop"),
         literal("SESSION_COOKIE_SECRET", "noop"),
         literal("YOUTUBE_API_KEY", "noop"),
-        fromGithub("TMDB_API_READ_ACCESS_TOKEN"),
+        fromDoppler("TMDB_API_READ_ACCESS_TOKEN"),
       ],
     },
   },
@@ -515,7 +515,7 @@ export const PROJECTS: readonly Project[] = [
       scaleToZero: false,
       healthCheck: false,
       secrets: [
-        fromGithub("OPENAI_API_KEY"),
+        fromDoppler("OPENAI_API_KEY"),
         // Server emits absolute URLs in OpenAPI/redirect responses; derive from
         // the project's hostname so we never have to think about it again.
         computed("SERVER_BASE_URL", (ctx) => `https://${ctx.hostname}`),
@@ -907,16 +907,16 @@ export function getUniqueCloneRepos(): readonly { repo: string; dir: string }[] 
 // ---------------------------------------------------------------------------
 
 /**
- * Every secret name across all projects whose source is `github`. This is
- * the set of GitHub Actions repo secrets the deploy pipeline must have
- * available; the `check-github-secrets.ts` validator uses this list to fail
- * the workflow early if any are missing.
+ * Every secret name across all projects whose source is `doppler`. This is
+ * the set of secrets the deploy pipeline expects `doppler run` to inject into
+ * the environment; the `check-doppler-secrets.ts` validator uses this list to
+ * fail the workflow early if any are missing.
  */
-export function allGithubSecretNames(): readonly string[] {
+export function allDopplerSecretNames(): readonly string[] {
   const names = new Set<string>();
   for (const t of getInfraTargets()) {
     for (const s of t.deploy.secrets ?? []) {
-      if (s.source.t === "github") names.add(s.name);
+      if (s.source.t === "doppler") names.add(s.name);
     }
   }
   return [...names].sort();

@@ -5,7 +5,7 @@
  * no fallback chains, hidden allow-lists, or per-project tables in this
  * script. Each `SecretSpec.source.t` resolves uniformly:
  *
- *   - "github":    process.env[name] (from a GitHub Actions repo secret).
+ *   - "doppler":   process.env[name] (injected by `doppler run`).
  *   - "literal":   inline value verbatim.
  *   - "computed":  re-derived from the project on every sync.
  *   - "generated": SET ONCE per Fly app and PRESERVED across deploys
@@ -23,7 +23,7 @@
  */
 import { ensureFlyAuth, flyAppExists, flyctl, flyctlJson } from "../lib/flyctl.js";
 import {
-  allGithubSecretNames,
+  allDopplerSecretNames,
   buildDeployTargets,
   findTargetById,
   type DeployTarget,
@@ -95,12 +95,12 @@ function existingFlySecretNames(target: DeployTarget): ReadonlySet<string> | nul
   }
 }
 
-type SourceKind = "github" | "literal" | "computed" | "generated";
+type SourceKind = "doppler" | "literal" | "computed" | "generated";
 
 type SecretResolution =
   | { readonly status: "set"; readonly value: string; readonly source: SourceKind }
   | { readonly status: "preserved"; readonly source: "generated" } // already on Fly, leave it alone
-  | { readonly status: "missing"; readonly githubSecret: string };
+  | { readonly status: "missing"; readonly dopplerSecret: string };
 
 function resolveSecret(
   target: DeployTarget,
@@ -111,10 +111,10 @@ function resolveSecret(
   const ctx = { id: target.id, hostname: target.hostname, port: target.port };
 
   switch (spec.source.t) {
-    case "github": {
+    case "doppler": {
       const value = process.env[spec.name]?.trim();
-      if (value) return { status: "set", value, source: "github" };
-      return { status: "missing", githubSecret: spec.name };
+      if (value) return { status: "set", value, source: "doppler" };
+      return { status: "missing", dopplerSecret: spec.name };
     }
     case "literal":
       return { status: "set", value: spec.source.value, source: "literal" };
@@ -141,7 +141,7 @@ function syncTargetSecrets(target: DeployTarget, args: Args): SyncOutcome {
   const missing: string[] = [];
   const pairs: string[] = [];
   const bySource: Record<SourceKind, number> = {
-    github: 0,
+    doppler: 0,
     literal: 0,
     computed: 0,
     generated: 0,
@@ -157,7 +157,7 @@ function syncTargetSecrets(target: DeployTarget, args: Args): SyncOutcome {
   for (const spec of specs) {
     const resolved = resolveSecret(target, spec, existingNames, args.regenerate);
     if (resolved.status === "missing") {
-      missing.push(resolved.githubSecret);
+      missing.push(resolved.dopplerSecret);
       continue;
     }
     if (resolved.status === "preserved") {
@@ -181,11 +181,11 @@ function main(): void {
   const args = parseArgs(process.argv.slice(2));
   ensureFlyAuth();
   const targets = targetsFromArgs(args);
-  const allGithub = allGithubSecretNames();
+  const allDoppler = allDopplerSecretNames();
 
   console.log(
     `Fly secrets sync (${args.dryRun ? "DRY-RUN" : "APPLY"}) — ` +
-      `targets=${targets.length}, github-repo-secrets=${allGithub.length}` +
+      `targets=${targets.length}, doppler-secrets=${allDoppler.length}` +
       (args.regenerate.size > 0 ? `, regenerate=[${[...args.regenerate].join(",")}]` : ""),
   );
 

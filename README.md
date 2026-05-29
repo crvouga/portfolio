@@ -98,31 +98,44 @@ bun run generate-deploy-matrix -- --id normalizer-app --pretty
 | `force_teardown` | `false` | Bypass the `max_teardowns_per_run` safety cap. |
 | `max_teardowns_per_run` | `1` | Cap on Fly apps destroyed per run. |
 
-## Required GitHub secrets
+## Secrets (Doppler)
 
-The deploy pipeline passes `toJSON(secrets)` into
-[`scripts/check-github-secrets.ts`](scripts/check-github-secrets.ts), which
-both validates that every `{ source: { t: "github" } }` secret named in
-`projects.ts` is present AND re-exports them into `$GITHUB_ENV` for the
-secrets-sync step. Adding a new GitHub-sourced secret is therefore:
+All pipeline secrets live in **Doppler**, not GitHub. The only GitHub repo
+secret is `DOPPLER_TOKEN` — a Doppler **service token** scoped to the project +
+config the pipeline targets. Every secret-consuming job installs the Doppler
+CLI (`dopplerhq/cli-action`) and runs its scripts under `doppler run --`, which
+injects all secrets into the environment. No per-secret YAML, no `toJSON(secrets)`.
 
-1. Add the secret under repo Settings → Secrets and variables → Actions.
-2. Reference it in `projects.ts` via `fromGithub("MY_SECRET")`.
+[`scripts/check-doppler-secrets.ts`](scripts/check-doppler-secrets.ts) runs
+inside `doppler run` and fails the workflow early if any
+`{ source: { t: "doppler" } }` secret named in `projects.ts` is missing from the
+injected environment. Adding a new Doppler-sourced secret is therefore:
+
+1. Add the secret in Doppler (in the config the service token targets).
+2. Reference it in `projects.ts` via `fromDoppler("MY_SECRET")`.
 3. Push. No workflow YAML edit, no per-secret env block.
 
-| Secret | Purpose |
+| Secret (in Doppler) | Purpose |
 | --- | --- |
 | `FLY_API_TOKEN` | `flyctl auth token`. Used by every Fly orchestrator. |
 | `CLOUDFLARE_API_TOKEN` | API token with `Zone:Edit`, `DNS:Edit`, and **Dynamic URL Redirects** (or Zone Rules) write for the zone. |
 | `CLOUDFLARE_ACCOUNT_ID` | Cloudflare account that owns the zone. |
 | `CLOUDFLARE_SECRETS_STORE_ID` | Only for the legacy Workers decommission script. |
-| Anything referenced by `fromGithub(...)` in `projects.ts` | Project-specific secrets — auto-validated and forwarded to Fly. |
+| Anything referenced by `fromDoppler(...)` in `projects.ts` | Project-specific secrets — auto-validated and forwarded to Fly. |
 
-`GITHUB_TOKEN` is provided automatically and is used to push images to ghcr.io.
+`DOPPLER_TOKEN` is the only secret set under repo Settings → Secrets and
+variables → Actions. `GITHUB_TOKEN` is provided automatically and is used to
+push images to ghcr.io.
+
+Locally, authenticate once with `doppler login && doppler setup`, then run any
+orchestrator script via `doppler run -- bun run <script>` to get the same
+injected environment as CI.
 
 ## One-time cutover (registrar → Cloudflare → Fly)
 
-1. **Set GitHub secrets** above on the repo (Settings → Secrets and variables → Actions).
+1. **Populate Doppler** with the secrets above, then set the one repo secret
+   `DOPPLER_TOKEN` (Settings → Secrets and variables → Actions) to a service
+   token scoped to that config.
 2. **Dispatch `Deploy Pipeline`** with `dry_run = false`. The
    `cloudflare-zones` job prints the nameservers Cloudflare assigned to
    `chrisvouga.dev`.
@@ -140,13 +153,13 @@ secrets-sync step. Adding a new GitHub-sourced secret is therefore:
 1. Append a `Project` entry to [`projects.ts`](projects.ts) with
    `deployment.t === "public"` and a `deploy: DeploySpec` block (see
    [Deploy spec fields](#deploy-spec-fields) below).
-2. If the project references any `fromGithub("X")` secrets that don't exist
-   yet, add them under repo Settings → Secrets and variables → Actions.
+2. If the project references any `fromDoppler("X")` secrets that don't exist
+   yet, add them in Doppler (in the config the service token targets).
 3. Push to `main`. The deploy pipeline runs end-to-end:
    - `fly-bootstrap` creates the Fly app + dedicated IPv4/IPv6 (idempotent).
    - `cloudflare-dns-sync` adds the `<sub>.chrisvouga.dev` CNAME.
    - `build-and-push` builds and pushes the container to `ghcr.io`.
-   - `fly-secrets-sync` validates the GitHub secrets bag and stages every
+   - `fly-secrets-sync` validates the Doppler-injected secrets and stages every
      declared `SecretSpec`.
    - `fly-deploy` pulls the freshly-built image from ghcr.io and deploys.
    - `health-check` confirms the public URL returns 200.
@@ -187,7 +200,7 @@ deploy: {
     dockerfile: "<path>/Dockerfile", //   default: "<context>/Dockerfile"
   },
   secrets: [                         // optional — staged via `fly secrets set`
-    fromGithub("API_KEY"),                                // process.env[name]
+    fromDoppler("API_KEY"),                               // process.env[name] via doppler run
     literal("PORT", "8080"),                              // inline value
     computed("BASE_URL", (c) => `https://${c.hostname}`), // derived per app
     generated("SIGNING_KEY", randomHex32),                // set ONCE, preserved
