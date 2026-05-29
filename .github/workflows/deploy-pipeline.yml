@@ -44,7 +44,7 @@ on:
         type: boolean
         default: false
       fly_org:
-        description: "Fly organisation slug (used by bootstrap)."
+        description: "Fly organization slug (used by bootstrap)."
         required: false
         type: string
         default: personal
