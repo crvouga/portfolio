@@ -71,7 +71,7 @@ env:
   # auto-detects DOPPLER_TOKEN; the service token is scoped to one project +
   # config, so every `doppler run` below injects FLY_API_TOKEN, CLOUDFLARE_*,
   # and all app secrets without any per-secret YAML.
-  DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
+  DOPPLER_TOKEN: ${{ secrets.DOPPLER_SERVICE_TOKEN }}
   IMAGE_TAG: ${{ inputs.image_tag || github.sha }}
 
 jobs:
