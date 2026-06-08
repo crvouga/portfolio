@@ -101,7 +101,7 @@ bun run generate-deploy-matrix -- --id normalizer-app --pretty
 ## Secrets (Vault)
 
 All pipeline secrets live in the self-hosted OpenBao store at
-`https://secret-store.chrisvouga.dev`, not GitHub. Paths are
+`https://vault.chrisvouga.dev`, not GitHub. Paths are
 `secret/personal/dev` (local) and `secret/personal/prd` (CI/production).
 [`.vault.yaml`](.vault.yaml) at the repo root holds the coordinates (no secrets).
 
