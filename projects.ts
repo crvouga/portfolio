@@ -323,7 +323,10 @@ export const PROJECTS: readonly Project[] = [
       "A web application that automates data normalization workflows, transforming tabular data (Excel, CSV) between schemas without manual Excel manipulation or custom Python scripts. Streamlines data processing for teams handling diverse data formats.",
     imageAlt: IMAGE_ALT,
     imageSrc: ["/normalizer-app-screenshot.optimized.webp"],
-    galleryImageSrc: ["/normalizer-app-screenshot.png"],
+    galleryImageSrc: [
+      "/normalizer-app-screenshot.png",
+      toYouTubeVideoUrl({ youTubeVideoId: "xUtdHEUeUzs", autoplay: true, mute: true }),
+    ],
     topics: ["typescript", "react", "tailwind", "bun", "postgres", "s3", "trpc", "zod"],
     resume: { priority: 100 },
   },
