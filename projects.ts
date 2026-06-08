@@ -17,7 +17,6 @@
  *     certs go with it). A safety cap on the deploy pipeline prevents
  *     accidental mass-destroys.
  */
-import { randomBytes } from "node:crypto";
 import { Topic } from "./src/content/topic";
 
 // ---------------------------------------------------------------------------
@@ -172,19 +171,6 @@ const literal = (name: string, value: string): SecretSpec => ({
   name,
   source: { t: "literal", value },
 });
-
-const computed = (name: string, compute: (ctx: SecretCtx) => string): SecretSpec => ({
-  name,
-  source: { t: "computed", compute },
-});
-
-const generated = (name: string, generate: () => string): SecretSpec => ({
-  name,
-  source: { t: "generated", generate },
-});
-
-/** 64-char hex (equivalent to `openssl rand -hex 32`). */
-const randomHex32 = () => randomBytes(32).toString("hex");
 
 /** Standard moviefinder secrets (TMDB + Twilio). */
 const moviefinderSecrets: readonly SecretSpec[] = [
