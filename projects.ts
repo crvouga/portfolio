@@ -314,6 +314,20 @@ export const PROJECTS: readonly Project[] = [
     resume: { include: false },
   },
   {
+    id: "normalizer-app",
+    title: "normalizer.app",
+    setting: "side",
+    deployment: { t: "public", url: "https://www.normalizer.app" },
+    code: { t: "public", url: "https://github.com/crvouga/normalizer.app.git" },
+    description:
+      "A web application that automates data normalization workflows, transforming tabular data (Excel, CSV) between schemas without manual Excel manipulation or custom Python scripts. Streamlines data processing for teams handling diverse data formats.",
+    imageAlt: IMAGE_ALT,
+    imageSrc: ["/normalizer-app-screenshot.optimized.webp"],
+    galleryImageSrc: ["/normalizer-app-screenshot.png"],
+    topics: ["typescript", "react", "tailwind", "bun", "postgres", "s3", "trpc", "zod"],
+    resume: { priority: 100 },
+  },
+  {
     id: "pickflix",
     title: "Pickflix",
     setting: "side",
@@ -495,37 +509,7 @@ export const PROJECTS: readonly Project[] = [
       healthCheck: true,
     },
   },
-  {
-    id: "normalizer-app",
-    title: "normalizer.app",
-    setting: "side",
-    // deployment: { t: "public", url: "https://normalizer.chrisvouga.dev/" },
-    deployment: { t: "not-deployed-anymore" },
-    code: { t: "public", url: "https://github.com/crvouga/normalizer.app.git" },
-    description:
-      "A web application that automates data normalization workflows, transforming tabular data (Excel, CSV) between schemas without manual Excel manipulation or custom Python scripts. Streamlines data processing for teams handling diverse data formats.",
-    imageAlt: IMAGE_ALT,
-    imageSrc: ["/normalizer-app-screenshot.optimized.webp"],
-    galleryImageSrc: ["/normalizer-app-screenshot.png"],
-    topics: ["typescript", "react", "tailwind", "bun", "postgres", "s3", "trpc", "zod"],
-    deploy: {
-      githubRepo: "crvouga/normalizer.app",
-      hostname: "normalizer.chrisvouga.dev",
-      port: 8080,
-      scaleToZero: false,
-      healthCheck: false,
-      secrets: [
-        fromVault("OPENAI_API_KEY"),
-        // Server emits absolute URLs in OpenAPI/redirect responses; derive from
-        // the project's hostname so we never have to think about it again.
-        computed("SERVER_BASE_URL", (ctx) => `https://${ctx.hostname}`),
-        // Random key used to sign S3 presigned URLs. Set ONCE so existing
-        // signed URLs stay valid across deploys.
-        generated("OBJECT_STORE_PRESIGNED_URL_SECRET", randomHex32),
-      ],
-    },
-    resume: { priority: 100 },
-  },
+
   {
     id: "airr",
     title: "Airr Product Demo",
