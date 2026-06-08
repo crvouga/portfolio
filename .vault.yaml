@@ -1,0 +1,4 @@
+addr: https://secret-store.chrisvouga.dev
+mount: secret
+project: personal
+config: dev

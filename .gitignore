@@ -28,6 +28,8 @@ tsconfig.tsbuildinfo
 .lsp
 .clj-kondo
 .env
+.vault-token
+init-output.json
 
 # Cloned sibling project repos
 projects/

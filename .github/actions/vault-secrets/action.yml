@@ -1,0 +1,21 @@
+name: Vault secrets (OIDC)
+description: Authenticate to OpenBao via GitHub OIDC and export pipeline secrets
+runs:
+  using: composite
+  steps:
+    - uses: hashicorp/vault-action@v3
+      with:
+        url: https://secret-store.chrisvouga.dev
+        method: jwt
+        path: jwt
+        role: github-actions
+        jwtGithubAudience: https://secret-store.chrisvouga.dev
+        secrets: |
+          secret/data/personal/prd FLY_API_TOKEN | FLY_API_TOKEN ;
+          secret/data/personal/prd CLOUDFLARE_API_TOKEN | CLOUDFLARE_API_TOKEN ;
+          secret/data/personal/prd CLOUDFLARE_ACCOUNT_ID | CLOUDFLARE_ACCOUNT_ID ;
+          secret/data/personal/prd TMDB_API_READ_ACCESS_TOKEN | TMDB_API_READ_ACCESS_TOKEN ;
+          secret/data/personal/prd TWILIO_ACCOUNT_SID | TWILIO_ACCOUNT_SID ;
+          secret/data/personal/prd TWILIO_AUTH_TOKEN | TWILIO_AUTH_TOKEN ;
+          secret/data/personal/prd TWILIO_SERVICE_SID | TWILIO_SERVICE_SID ;
+          secret/data/personal/prd OPENAI_API_KEY | OPENAI_API_KEY

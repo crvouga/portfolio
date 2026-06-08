@@ -7,7 +7,7 @@
  * PROJECT inside `projects.ts`. This file is intentionally thin.
  */
 import {
-  allDopplerSecretNames,
+  allVaultSecretNames,
   cloudflareZoneForHostname,
   flyAppName,
   getInfraTargets,
@@ -70,7 +70,7 @@ export function uniqueZones(): readonly string[] {
  * Re-export so workflow validation scripts can read the registry without
  * needing a relative path back to the root.
  */
-export { allDopplerSecretNames };
+export { allVaultSecretNames };
 
 /** Re-export the canonical deploy spec for scripts that consume it directly. */
 export type { DeploySpec, InfraTarget };
