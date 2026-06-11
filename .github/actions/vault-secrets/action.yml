@@ -5,8 +5,7 @@ runs:
   steps:
     - uses: hashicorp/vault-action@v3
       with:
-        # API host (Fly); JWT role bound_audiences still uses the original custom domain.
-        url: https://vault-chrisvouga.fly.dev
+        url: https://vault.chrisvouga.dev
         method: jwt
         path: jwt
         role: github-actions
