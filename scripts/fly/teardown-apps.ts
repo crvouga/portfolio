@@ -26,7 +26,7 @@
  *   bun run scripts/fly/teardown-apps.ts --org my-org              # override org
  *   bun run scripts/fly/teardown-apps.ts --json                    # CI output
  */
-import { ensureFlyAuth, flyctl, flyctlJson } from "../lib/flyctl.js";
+import { ensureFlyAuth, flyctlJson, flyctlSafe, FlyctlError } from "../lib/flyctl.js";
 import { buildDeployTargets } from "../lib/project-targets.js";
 
 const REPO_PREFIX = "chrisvouga-";
@@ -128,6 +128,11 @@ function emit(args: Args, ev: LogEvent): void {
   }
 }
 
+function isAppNotFound(result: { readonly stdout: string; readonly stderr: string }): boolean {
+  const combined = `${result.stdout}\n${result.stderr}`.toLowerCase();
+  return combined.includes("not found") || combined.includes("could not find app");
+}
+
 function main(): void {
   const args = parseArgs(process.argv.slice(2));
   ensureFlyAuth();
@@ -146,6 +151,17 @@ function main(): void {
   orphans.sort();
 
   emit(args, { event: "plan", total: apps.length, orphans });
+
+  if (orphans.length === 0) {
+    emit(args, {
+      event: "summary",
+      destroyed: 0,
+      skipped: 0,
+      errors: 0,
+      mode: args.apply ? "apply" : "dry-run",
+    });
+    return;
+  }
 
   const cap = args.force ? Number.POSITIVE_INFINITY : args.maxDestroys;
   let destroyed = 0;
@@ -167,7 +183,14 @@ function main(): void {
       continue;
     }
     try {
-      flyctl(["apps", "destroy", name, "--yes"]);
+      const result = flyctlSafe(["apps", "destroy", name, "--yes"]);
+      if (result.exitCode !== 0) {
+        if (isAppNotFound(result)) {
+          emit(args, { event: "skipped", name, reason: "already destroyed" });
+          continue;
+        }
+        throw new FlyctlError(["apps", "destroy", name, "--yes"], result);
+      }
       destroyed += 1;
       emit(args, { event: "destroyed", name });
     } catch (err) {
@@ -189,8 +212,9 @@ function main(): void {
   });
 
   if (errors > 0) process.exit(1);
-  // Loud non-zero exit when the cap blocked work so CI can fail the job.
-  if (skipped > 0) process.exit(2);
+  // Cap blocked remaining orphans — not an idempotent no-op case.
+  const capBlocked = skipped > 0;
+  if (capBlocked) process.exit(2);
 }
 
 main();
