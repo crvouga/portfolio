@@ -303,7 +303,7 @@ export const PROJECTS: readonly Project[] = [
     id: "normalizer-app",
     title: "normalizer.app",
     setting: "side",
-    deployment: { t: "public", url: "https://www.normalizer.app" },
+    deployment: { t: "public", url: "https://normalizer.chrisvouga.dev" },
     code: { t: "public", url: "https://github.com/crvouga/normalizer.app.git" },
     description:
       "A web application that automates data normalization workflows, transforming tabular data (Excel, CSV) between schemas without manual Excel manipulation or custom Python scripts. Streamlines data processing for teams handling diverse data formats.",
