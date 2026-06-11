@@ -1,35 +1,23 @@
 /**
- * Destroy Fly apps that are no longer represented in `projects.ts`.
+ * Destroy Fly apps for the chrisvouga.dev migration.
  *
- * Defaults to dry-run. Pass `--apply` to actually destroy. Only apps whose
- * names start with `chrisvouga-` are considered (we never touch unrelated
- * Fly apps in the same org).
+ * Modes:
+ *   --mode known   (default) — destroy chrisvouga-* apps still listed in projects.ts
+ *                            (migrated to the DO droplet; idempotent when already gone)
+ *   --mode orphans — destroy chrisvouga-* apps no longer in projects.ts (legacy cleanup)
  *
- * Safety cap:
- *   `--max-destroys <n>` limits how many orphans this run will destroy. The
- *   deploy pipeline sets a low default (1) so a single bad PR can't wipe out
- *   the whole org. Set `--force` (or pass a higher cap) to bypass.
- *
- * CI integration:
- *   `--json` switches output to one JSON object per line, suitable for
- *   piping into `jq` or summarizing in a workflow step:
- *
- *     {"event":"plan","total":16,"orphans":["chrisvouga-foo","..."]}
- *     {"event":"destroyed","name":"chrisvouga-foo"}
- *     {"event":"summary","destroyed":1,"skipped":2,"errors":0}
+ * Protected (never destroyed): vault-chrisvouga
  *
  * Usage:
- *   bun run scripts/fly/teardown-apps.ts                           # plan
- *   bun run scripts/fly/teardown-apps.ts --apply                   # destroy
- *   bun run scripts/fly/teardown-apps.ts --apply --max-destroys 1  # cap
- *   bun run scripts/fly/teardown-apps.ts --apply --force           # ignore cap
- *   bun run scripts/fly/teardown-apps.ts --org my-org              # override org
- *   bun run scripts/fly/teardown-apps.ts --json                    # CI output
+ *   bun run scripts/fly/teardown-apps.ts --apply --mode known --force
  */
 import { ensureFlyAuth, flyctlJson, flyctlSafe, FlyctlError } from "../lib/flyctl.js";
 import { buildDeployTargets } from "../lib/project-targets.js";
 
 const REPO_PREFIX = "chrisvouga-";
+const PROTECTED_APPS = new Set(["vault-chrisvouga"]);
+
+type TeardownMode = "known" | "orphans";
 
 type Args = {
   readonly apply: boolean;
@@ -37,6 +25,7 @@ type Args = {
   readonly maxDestroys: number;
   readonly force: boolean;
   readonly json: boolean;
+  readonly mode: TeardownMode;
 };
 
 function parseArgs(argv: readonly string[]): Args {
@@ -45,11 +34,19 @@ function parseArgs(argv: readonly string[]): Args {
   let maxDestroys = Number.POSITIVE_INFINITY;
   let force = false;
   let json = false;
+  let mode: TeardownMode = "known";
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     if (arg === "--apply") apply = true;
     else if (arg === "--org") org = argv[++i];
-    else if (arg === "--max-destroys") {
+    else if (arg === "--mode") {
+      const raw = argv[++i] ?? "";
+      if (raw !== "known" && raw !== "orphans") {
+        console.error(`--mode must be "known" or "orphans", got "${raw}"`);
+        process.exit(2);
+      }
+      mode = raw;
+    } else if (arg === "--max-destroys") {
       const raw = argv[++i] ?? "";
       const n = Number(raw);
       if (!Number.isFinite(n) || n < 0) {
@@ -62,7 +59,7 @@ function parseArgs(argv: readonly string[]): Args {
     else if (arg === "--help" || arg === "-h") {
       console.log(
         "Usage: bun run scripts/fly/teardown-apps.ts " +
-          "[--apply] [--org <slug>] [--max-destroys <n>] [--force] [--json]",
+          "[--apply] [--mode known|orphans] [--org <slug>] [--max-destroys <n>] [--force] [--json]",
       );
       process.exit(0);
     } else {
@@ -70,19 +67,22 @@ function parseArgs(argv: readonly string[]): Args {
       process.exit(2);
     }
   }
-  const base = { apply, maxDestroys, force, json };
+  const base = { apply, maxDestroys, force, json, mode };
   return org !== undefined ? { ...base, org } : base;
 }
 
 type FlyAppListEntry = {
   readonly Name?: string;
   readonly name?: string;
-  readonly Organization?: { Slug?: string };
-  readonly organization?: { slug?: string };
 };
 
 type LogEvent =
-  | { readonly event: "plan"; readonly total: number; readonly orphans: readonly string[] }
+  | {
+      readonly event: "plan";
+      readonly total: number;
+      readonly mode: TeardownMode;
+      readonly targets: readonly string[];
+    }
   | { readonly event: "would-destroy"; readonly name: string }
   | { readonly event: "destroyed"; readonly name: string }
   | { readonly event: "skipped"; readonly name: string; readonly reason: string }
@@ -103,10 +103,11 @@ function emit(args: Args, ev: LogEvent): void {
   switch (ev.event) {
     case "plan":
       console.log(
-        `Teardown Fly apps (${args.apply ? "APPLY" : "DRY-RUN"}) — total=${ev.total}, ` +
-          `prefix='${REPO_PREFIX}', orphans=${ev.orphans.length}, ` +
+        `Teardown Fly apps (${args.apply ? "APPLY" : "DRY-RUN"}) mode=${ev.mode} — ` +
+          `total=${ev.total}, targets=${ev.targets.length}, ` +
           `cap=${args.force ? "force" : args.maxDestroys}`,
       );
+      for (const name of ev.targets) console.log(`  target: ${name}`);
       return;
     case "would-destroy":
       console.log(`  would destroy: ${ev.name}`);
@@ -133,26 +134,35 @@ function isAppNotFound(result: { readonly stdout: string; readonly stderr: strin
   return combined.includes("not found") || combined.includes("could not find app");
 }
 
+function selectTargets(
+  apps: readonly FlyAppListEntry[],
+  knownFlyApps: ReadonlySet<string>,
+  mode: TeardownMode,
+): string[] {
+  const targets: string[] = [];
+  for (const app of apps) {
+    const name = app.Name ?? app.name ?? "";
+    if (!name.startsWith(REPO_PREFIX)) continue;
+    if (PROTECTED_APPS.has(name)) continue;
+    const isKnown = knownFlyApps.has(name);
+    if (mode === "known" ? isKnown : !isKnown) targets.push(name);
+  }
+  targets.sort();
+  return targets;
+}
+
 function main(): void {
   const args = parseArgs(process.argv.slice(2));
   ensureFlyAuth();
 
   const orgArgs = args.org ? ["--org", args.org] : [];
   const apps = flyctlJson<readonly FlyAppListEntry[]>(["apps", "list", ...orgArgs]);
+  const knownFlyApps = new Set(buildDeployTargets().map((t) => t.flyApp));
+  const targets = selectTargets(apps, knownFlyApps, args.mode);
 
-  const known = new Set(buildDeployTargets().map((t) => t.flyApp));
-  const orphans: string[] = [];
-  for (const app of apps) {
-    const name = app.Name ?? app.name ?? "";
-    if (!name.startsWith(REPO_PREFIX)) continue;
-    if (known.has(name)) continue;
-    orphans.push(name);
-  }
-  orphans.sort();
+  emit(args, { event: "plan", total: apps.length, mode: args.mode, targets });
 
-  emit(args, { event: "plan", total: apps.length, orphans });
-
-  if (orphans.length === 0) {
+  if (targets.length === 0) {
     emit(args, {
       event: "summary",
       destroyed: 0,
@@ -168,7 +178,7 @@ function main(): void {
   let skipped = 0;
   let errors = 0;
 
-  for (const name of orphans) {
+  for (const name of targets) {
     if (!args.apply) {
       emit(args, { event: "would-destroy", name });
       continue;
@@ -212,9 +222,7 @@ function main(): void {
   });
 
   if (errors > 0) process.exit(1);
-  // Cap blocked remaining orphans — not an idempotent no-op case.
-  const capBlocked = skipped > 0;
-  if (capBlocked) process.exit(2);
+  if (skipped > 0) process.exit(2);
 }
 
 main();

@@ -1,21 +1,29 @@
-name: Fly teardown (one-time migration)
+name: Fly teardown
 
-# Run manually after the single-node stack is healthy and DNS has cut over.
-# Destroys orphan Fly apps registered in projects.ts.
+# Destroys migrated chrisvouga-* Fly apps (mode=known) after the DO stack is healthy.
+# Idempotent: succeeds when apps are already gone. Never touches vault-chrisvouga.
 
 on:
   workflow_dispatch:
     inputs:
+      mode:
+        description: "known = destroy apps in projects.ts; orphans = stale apps no longer listed"
+        required: false
+        type: choice
+        options:
+          - known
+          - orphans
+        default: known
       force_teardown:
         description: "Bypass the max_teardowns_per_run safety cap."
         required: false
         type: boolean
-        default: false
+        default: true
       max_teardowns_per_run:
         description: "Hard cap on Fly apps destroyed per run."
         required: false
         type: string
-        default: "15"
+        default: "20"
 
 permissions:
   id-token: write
@@ -34,8 +42,9 @@ jobs:
         env:
           MAX_TEARDOWNS: ${{ inputs.max_teardowns_per_run }}
           FORCE_TEARDOWN: ${{ inputs.force_teardown }}
+          TEARDOWN_MODE: ${{ inputs.mode }}
         run: |
           set -euo pipefail
-          ARGS=("--apply" "--max-destroys" "${MAX_TEARDOWNS}")
+          ARGS=(--apply --mode "${TEARDOWN_MODE}" --max-destroys "${MAX_TEARDOWNS}" --json)
           if [ "${FORCE_TEARDOWN}" = "true" ]; then ARGS+=("--force"); fi
-          bun run fly:teardown "${ARGS[@]}" --json
+          bun run fly:teardown -- "${ARGS[@]}"
