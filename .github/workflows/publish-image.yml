@@ -1,0 +1,23 @@
+name: Publish image
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - "**/*.md"
+      - "public/**"
+      - ".vscode/**"
+      - ".cursor/**"
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    uses: crvouga/chrisvouga.dev/.github/workflows/reusable-publish-image.yml@main
+    with:
+      service_id: portfolio
+      dockerfile: ./Dockerfile
+      context: .

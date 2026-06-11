@@ -1,16 +1,8 @@
 name: Deploy Pipeline
 
-# Every push to main (except docs/assets) runs the full pipeline: idempotent
-# Cloudflare + Fly bootstrap, rebuild all images, deploy, health-check, audit,
-# teardown. Downstream scripts are idempotent — the workflow only orchestrates.
-#
-#   prepare ─┬─▶ cloudflare-zones
-#            ├─▶ cloudflare-dns-sync (+ apex → www redirect)
-#            ├─▶ fly-bootstrap
-#            └─▶ build-and-push
-#                    │
-#                    ▼
-#            fly-secrets-sync ─▶ fly-deploy ─▶ health-check + audit + teardown
+# Portfolio site CI — images deploy via chrisvouga.dev single-node stack.
+# Image publishing: .github/workflows/publish-image.yml
+# Fly teardown (post-migration): .github/workflows/fly-teardown.yml
 
 on:
   push:
@@ -24,40 +16,6 @@ on:
       - ".gitignore"
       - ".editorconfig"
   workflow_dispatch:
-    inputs:
-      project_id:
-        description: "Single project id (filters build + deploy matrix)."
-        required: false
-        type: string
-      image_tag:
-        description: "Image tag for build + deploy. Defaults to github.sha."
-        required: false
-        type: string
-      apply_dns:
-        description: "Apply Cloudflare DNS changes (uncheck for plan-only)."
-        required: false
-        type: boolean
-        default: true
-      dry_run:
-        description: "Plan-only for zone setup and Fly bootstrap."
-        required: false
-        type: boolean
-        default: false
-      fly_org:
-        description: "Fly organization slug (used by bootstrap)."
-        required: false
-        type: string
-        default: personal
-      force_teardown:
-        description: "Bypass the max_teardowns_per_run safety cap."
-        required: false
-        type: boolean
-        default: false
-      max_teardowns_per_run:
-        description: "Hard cap on Fly apps destroyed per run."
-        required: false
-        type: string
-        default: "1"
 
 concurrency:
   group: deploy-pipeline-${{ github.ref }}
@@ -67,252 +25,26 @@ permissions:
   id-token: write
   contents: read
 
-env:
-  IMAGE_TAG: ${{ inputs.image_tag || github.sha }}
-
 jobs:
   prepare:
     runs-on: ubuntu-latest
-    outputs:
-      matrix: ${{ steps.matrix.outputs.matrix }}
     steps:
       - uses: actions/checkout@v5
       - uses: oven-sh/setup-bun@v2
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
-      - name: Typecheck
-        run: bun run typecheck
-      - id: matrix
-        env:
-          PROJECT_ID: ${{ inputs.project_id }}
-        run: |
-          set -euo pipefail
-          ARGS=(--github-output)
-          if [ -n "${PROJECT_ID:-}" ]; then
-            ARGS+=(--id "${PROJECT_ID}")
-          fi
-          bun run scripts/generate-deploy-matrix.ts "${ARGS[@]}"
-
-  cloudflare-zones:
-    runs-on: ubuntu-latest
-    needs: prepare
-    steps:
-      - uses: actions/checkout@v5
-      - uses: oven-sh/setup-bun@v2
-      - uses: ./.github/actions/vault-secrets
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
-      - name: Ensure zones + print nameservers
-        run: |
-          set -euo pipefail
-          ARGS=()
-          if [ "${{ inputs.dry_run }}" = "true" ]; then
-            ARGS+=("--dry-run")
-          fi
-          bun run cf:setup-zone "${ARGS[@]}"
-
-  cloudflare-dns-sync:
-    runs-on: ubuntu-latest
-    needs: prepare
-    steps:
-      - uses: actions/checkout@v5
-      - uses: oven-sh/setup-bun@v2
-      - uses: ./.github/actions/vault-secrets
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
-      - name: Reconcile Cloudflare DNS
-        env:
-          # workflow_dispatch `inputs` are empty on push; always apply on main pushes.
-          CF_APPLY: ${{ github.event_name == 'push' || inputs.apply_dns != false }}
-        run: |
-          set -euo pipefail
-          ARGS=()
-          if [ "${CF_APPLY}" = "true" ]; then
-            ARGS+=("--apply")
-          fi
-          bun run cf:sync-dns "${ARGS[@]}"
-      - name: Ensure apex → www redirect
-        env:
-          CF_APPLY: ${{ github.event_name == 'push' || inputs.apply_dns != false }}
-        run: |
-          set -euo pipefail
-          ARGS=()
-          if [ "${CF_APPLY}" = "true" ]; then
-            ARGS+=("--apply")
-          fi
-          bun run cf:sync-redirects "${ARGS[@]}"
-
-  fly-bootstrap:
-    runs-on: ubuntu-latest
-    needs: prepare
-    steps:
-      - uses: actions/checkout@v5
-      - uses: oven-sh/setup-bun@v2
-      - uses: superfly/flyctl-actions/setup-flyctl@master
-      - uses: ./.github/actions/vault-secrets
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
-      - name: Bootstrap Fly apps + IPs
-        env:
-          FLY_ORG: ${{ inputs.fly_org || 'personal' }}
-        run: |
-          set -euo pipefail
-          ARGS=("--org" "$FLY_ORG")
-          if [ "${{ inputs.dry_run }}" = "true" ]; then
-            ARGS+=("--dry-run")
-          fi
-          bun run fly:bootstrap "${ARGS[@]}"
-
-  build-and-push:
-    runs-on: ubuntu-latest
-    needs: prepare
-    permissions:
-      contents: read
-      packages: write
-    strategy:
-      fail-fast: false
-      matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
-    steps:
-      - name: Checkout portfolio (this repository)
-        uses: actions/checkout@v5
-
-      - name: Checkout ${{ matrix.checkout_repo }}
-        if: ${{ matrix.checkout_repo != '' }}
-        uses: actions/checkout@v5
-        with:
-          repository: ${{ matrix.checkout_repo }}
-          path: ${{ matrix.checkout_path }}
-
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v4.1.0
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4.0.0
-
-      - name: Build and push ${{ matrix.id }}
-        uses: docker/build-push-action@v7.2.0
-        with:
-          context: ${{ matrix.build_context }}
-          file: ${{ matrix.dockerfile }}
-          platforms: linux/amd64
-          push: true
-          provenance: false
-          tags: |
-            ${{ matrix.image_repo }}:latest
-            ${{ matrix.image_repo }}:${{ env.IMAGE_TAG }}
-          cache-from: type=gha,scope=${{ matrix.id }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.id }}
-
-  fly-secrets-sync:
-    runs-on: ubuntu-latest
-    needs: [prepare, cloudflare-dns-sync, fly-bootstrap]
-    if: >-
-      ${{
-        always()
-        && needs.cloudflare-dns-sync.result != 'failure'
-        && needs.cloudflare-dns-sync.result != 'cancelled'
-        && needs.fly-bootstrap.result != 'failure'
-        && needs.fly-bootstrap.result != 'cancelled'
-      }}
-    steps:
-      - uses: actions/checkout@v5
-      - uses: oven-sh/setup-bun@v2
-      - uses: superfly/flyctl-actions/setup-flyctl@master
-      - uses: ./.github/actions/vault-secrets
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
-      - name: Validate vault-sourced secrets
-        run: bun run scripts/check-vault-secrets.ts
-      - name: Push secrets to Fly apps
-        env:
-          PROJECT_ID: ${{ inputs.project_id }}
-        run: |
-          set -euo pipefail
-          ARGS=()
-          if [ -n "${PROJECT_ID:-}" ]; then
-            ARGS+=("--id" "${PROJECT_ID}")
-          fi
-          bun run fly:sync-secrets "${ARGS[@]}"
-
-  fly-deploy:
-    runs-on: ubuntu-latest
-    needs: [prepare, fly-secrets-sync, build-and-push]
-    if: >-
-      ${{
-        needs.fly-secrets-sync.result == 'success'
-        && needs.build-and-push.result == 'success'
-      }}
-    strategy:
-      fail-fast: false
-      matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
-    steps:
-      - uses: actions/checkout@v5
-      - uses: oven-sh/setup-bun@v2
-      - uses: superfly/flyctl-actions/setup-flyctl@master
-      - uses: ./.github/actions/vault-secrets
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
-      - name: Deploy ${{ matrix.id }} to Fly
-        run: |
-          set -euo pipefail
-          bun run fly:deploy \
-            --id "${{ matrix.id }}" \
-            --image "${{ matrix.image_repo }}:${{ env.IMAGE_TAG }}"
+      - run: bun install --frozen-lockfile
+      - run: bun run typecheck
 
   health-check:
     runs-on: ubuntu-latest
-    needs: fly-deploy
-    if: ${{ needs.fly-deploy.result == 'success' }}
+    needs: prepare
     steps:
       - uses: actions/checkout@v5
       - uses: oven-sh/setup-bun@v2
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
+      - run: bun install --frozen-lockfile
       - name: Health-check public URLs
         run: |
           bun run health-check-urls \
-            --warmup-timeout-ms 90000 \
-            --fly-timeout-ms 60000 \
-            --fly-retries 4 \
+            --no-warmup \
+            --timeout-ms 30000 \
+            --retries 4 \
             --retry-delay-ms 5000
-
-  scale-to-zero-audit:
-    runs-on: ubuntu-latest
-    needs: fly-deploy
-    if: ${{ needs.fly-deploy.result == 'success' }}
-    steps:
-      - uses: actions/checkout@v5
-      - uses: oven-sh/setup-bun@v2
-      - uses: superfly/flyctl-actions/setup-flyctl@master
-      - uses: ./.github/actions/vault-secrets
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
-      - name: Audit scale-to-zero compliance
-        run: bun run fly:audit-scale
-
-  fly-teardown:
-    runs-on: ubuntu-latest
-    needs: fly-deploy
-    if: ${{ needs.fly-deploy.result == 'success' }}
-    steps:
-      - uses: actions/checkout@v5
-      - uses: oven-sh/setup-bun@v2
-      - uses: superfly/flyctl-actions/setup-flyctl@master
-      - uses: ./.github/actions/vault-secrets
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
-      - name: Tear down orphan Fly apps
-        env:
-          MAX_TEARDOWNS: ${{ inputs.max_teardowns_per_run || '1' }}
-          FORCE_TEARDOWN: ${{ inputs.force_teardown || 'false' }}
-        run: |
-          set -euo pipefail
-          ARGS=("--apply" "--max-destroys" "${MAX_TEARDOWNS}")
-          if [ "${FORCE_TEARDOWN}" = "true" ]; then
-            ARGS+=("--force")
-          fi
-          bun run fly:teardown "${ARGS[@]}" --json

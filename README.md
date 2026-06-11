@@ -5,32 +5,24 @@ Source for [chrisvouga.dev](https://www.chrisvouga.dev) and the public side proj
 ## Architecture
 
 ```
-GitHub repo ──▶ GitHub Actions
-                  │           │
-                  │           ▼
-                  │     ghcr.io/<owner>/chrisvouga-<id>:<sha>
-                  │           │
-                  ▼           ▼
-        Cloudflare DNS ◀── Fly app (chrisvouga-<id>)
-              │              scale-to-zero
-              ▼
-            users
+Each project repo ──▶ ghcr.io/crvouga/chrisvouga-<id> (public)
+                              │
+                              ▼
+                    chrisvouga.dev repo CI
+                              │
+                              ▼
+              Single DO node + Traefik (*.chrisvouga.dev)
 ```
 
-- **Compute**: one Fly.io app per deploy target, name `chrisvouga-<id>`. Scale-to-zero by default
-  (`deploy.scaleToZero` on each `deploy` block in `projects.ts`, default `true`;
-  `auto_stop_machines = "suspend"`, `min_machines_running = 0`). Set
-  `scaleToZero: false` to keep one machine warm (e.g. `normalizer-app`).
-  Deploys use `--ha=false` so each app runs at most one machine. The
-  `scale-to-zero-audit` job audits only scale-to-zero apps.
-- **Images**: built once per deploy target and pushed to `ghcr.io/<owner>/chrisvouga-<id>`
-  (the same image is consumed verbatim by Fly).
-- **DNS**: a single Cloudflare zone (`chrisvouga.dev`) with one CNAME per target
-  (`<sub>.chrisvouga.dev → chrisvouga-<id>.fly.dev`). Subdomains are **DNS-only**
-  (no proxying) so Fly issues TLS directly. The apex (`chrisvouga.dev`) is proxied
-  with a placeholder A record and a Cloudflare redirect rule to `www.chrisvouga.dev`.
-- **State**: [`projects.ts`](projects.ts) is the only source of truth. Every script,
-  matrix, and workflow reads it.
+- **Compute**: one DigitalOcean droplet runs all side-project containers. Routing and TLS
+  are handled by Traefik in the [chrisvouga.dev](https://github.com/crvouga/chrisvouga.dev) infra repo.
+- **Images**: each project repo builds and pushes its own image via
+  `publish-image.yml` (reusable workflow from chrisvouga.dev). This repo publishes
+  `chrisvouga-portfolio` from its root `Dockerfile`.
+- **DNS**: Cloudflare zone `chrisvouga.dev` — app hostnames CNAME to `origin.chrisvouga.dev`
+  (droplet IP). Apex redirects to `www.chrisvouga.dev`.
+- **State**: [`projects.ts`](projects.ts) is the portfolio source of truth for display;
+  runtime deploy config lives in `chrisvouga.dev/services.yaml`.
 
 ## Layout
 
@@ -38,10 +30,10 @@ GitHub repo ──▶ GitHub Actions
 | --- | --- |
 | `src/` | Static site generator for the portfolio (built into `dist/`). |
 | `projects.ts` | Single source of truth for every project (display + deployable infra). |
-| `fly/` | Generic `fly.toml` template rendered per app at deploy time. |
+| `fly/` | Legacy Fly.io template (teardown only — see `fly-teardown.yml`). |
 | `scripts/lib/` | Typed wrappers around `flyctl` and the Cloudflare REST API. |
-| `scripts/fly/` | Orchestrators: `bootstrap-apps`, `sync-secrets`, `deploy-app`, `teardown-apps`. |
-| `scripts/cloudflare/` | Orchestrators: `setup-zone`, `sync-dns`. |
+| `scripts/fly/` | Legacy Fly orchestrators (teardown / migration). |
+| `scripts/cloudflare/` | Legacy Cloudflare DNS (superseded by chrisvouga.dev). |
 | `scripts/decommission-cloudflare-workers.ts` | One-time legacy Cloudflare Workers cleanup. |
 | `scripts/generate-deploy-matrix.ts` | Emits the GitHub Actions build/deploy matrix from `projects.ts`. |
 | `.github/workflows/` | Single `deploy-pipeline` workflow handles bootstrap, build, and deploy. |
@@ -71,13 +63,11 @@ bun run decommission-cloudflare-workers           # dry-run legacy Workers teard
 
 ## GitHub Actions
 
-One workflow runs the full pipeline on every push to `main` (docs and
-screenshots are ignored via `paths-ignore`). Bootstrap steps are idempotent
-and always run; every deploy target is rebuilt and pushed to ghcr on each run.
-
 | Workflow | Trigger | What it does |
 | --- | --- | --- |
-| `deploy-pipeline.yml` | push to `main`, manual | prepare (typecheck + matrix) → Cloudflare zones / DNS / Fly bootstrap → build all images → secrets sync → deploy → health-check + scale-to-zero audit + teardown. |
+| `deploy-pipeline.yml` | push to `main`, manual | Typecheck + health-check public URLs. |
+| `publish-image.yml` | push to `main` | Build/push `ghcr.io/crvouga/chrisvouga-portfolio` and notify chrisvouga.dev deploy. |
+| `fly-teardown.yml` | manual | One-time Fly app destruction after single-node cutover. |
 
 Preview the deploy matrix locally:
 

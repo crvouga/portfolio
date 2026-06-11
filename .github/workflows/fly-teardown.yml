@@ -1,0 +1,41 @@
+name: Fly teardown (one-time migration)
+
+# Run manually after the single-node stack is healthy and DNS has cut over.
+# Destroys orphan Fly apps registered in projects.ts.
+
+on:
+  workflow_dispatch:
+    inputs:
+      force_teardown:
+        description: "Bypass the max_teardowns_per_run safety cap."
+        required: false
+        type: boolean
+        default: false
+      max_teardowns_per_run:
+        description: "Hard cap on Fly apps destroyed per run."
+        required: false
+        type: string
+        default: "15"
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  teardown:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: oven-sh/setup-bun@v2
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - uses: ./.github/actions/vault-secrets
+      - run: bun install --frozen-lockfile
+      - name: Tear down Fly apps
+        env:
+          MAX_TEARDOWNS: ${{ inputs.max_teardowns_per_run }}
+          FORCE_TEARDOWN: ${{ inputs.force_teardown }}
+        run: |
+          set -euo pipefail
+          ARGS=("--apply" "--max-destroys" "${MAX_TEARDOWNS}")
+          if [ "${FORCE_TEARDOWN}" = "true" ]; then ARGS+=("--force"); fi
+          bun run fly:teardown "${ARGS[@]}" --json

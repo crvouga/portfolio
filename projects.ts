@@ -801,7 +801,7 @@ export const PORTFOLIO_INFRA_TARGET: InfraTarget = {
   id: "portfolio",
   title: "chrisvouga.dev",
   deploy: {
-    githubRepo: "crvouga/chrisvouga.dev",
+    githubRepo: "crvouga/portfolio",
     hostname: "www.chrisvouga.dev",
     port: 80,
     healthCheck: true,
