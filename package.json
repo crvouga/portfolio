@@ -8,7 +8,7 @@
     "test": "bun test",
     "typecheck": "tsc",
     "tc": "bun run typecheck",
-    "gh": "open https://github.com/crvouga/chrisvouga.dev",
+    "gh": "open https://github.com/crvouga/portfolio",
     "optimize-images": "bun run ./src/optimize-images.ts",
     "screenshot-work": "bun run ./src/screenshot-work-websites.ts",
     "screenshot-projects": "bun run ./src/screenshot-project-websites.ts",
