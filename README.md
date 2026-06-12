@@ -1,64 +1,41 @@
 # portfolio
 
-Source for [chrisvouga.dev](https://www.chrisvouga.dev) and the public side projects deployed under it.
+Source for [chrisvouga.dev](https://www.chrisvouga.dev) — portfolio content, static site generator, and the portfolio container image.
 
 ## Architecture
 
 ```
-Each project repo ──▶ ghcr.io/crvouga/chrisvouga-<id> (public)
-                              │
-                              ▼
-                    chrisvouga.dev repo CI
-                              │
-                              ▼
-              Single DO node + Traefik (*.chrisvouga.dev)
+projects.ts (content) ──▶ src/ SSG ──▶ dist/ ──▶ Dockerfile ──▶ ghcr.io/crvouga/chrisvouga-portfolio
+                                                                                    │
+                                                                                    ▼
+                                                                        chrisvouga.dev deploy pipeline
 ```
 
-- **Compute**: one DigitalOcean droplet runs all side-project containers. Routing and TLS
-  are handled by Traefik in the [chrisvouga.dev](https://github.com/crvouga/chrisvouga.dev) infra repo.
-- **Images**: each project repo builds and pushes its own image via
-  `publish-image.yml` (reusable workflow from chrisvouga.dev). This repo publishes
-  `chrisvouga-portfolio` from its root `Dockerfile`.
-- **DNS**: Cloudflare zone `chrisvouga.dev` — app hostnames CNAME to `origin.chrisvouga.dev`
-  (droplet IP). Apex redirects to `www.chrisvouga.dev`.
-- **State**: [`projects.ts`](projects.ts) is the portfolio source of truth for display;
-  runtime deploy config lives in `chrisvouga.dev/services.yaml`.
+Side projects are hosted separately: each project repo publishes its own image, and
+[chrisvouga.dev](https://github.com/crvouga/chrisvouga.dev) orchestrates the single-node
+Docker stack from `services.yaml`.
+
+- **Content**: [`projects.ts`](projects.ts) is the source of truth for project listings (titles, descriptions, images, public URLs, topics).
+- **Hosting**: runtime deploy config for side projects lives in `chrisvouga.dev/services.yaml`.
+- **This repo's image**: `publish-image.yml` builds the portfolio static site from the root `Dockerfile`.
 
 ## Layout
 
 | Path | Purpose |
 | --- | --- |
-| `src/` | Static site generator for the portfolio (built into `dist/`). |
-| `projects.ts` | Single source of truth for every project (display + deployable infra). |
-| `fly/` | Legacy Fly.io template (teardown only — see `fly-teardown.yml`). |
-| `scripts/lib/` | Typed wrappers around `flyctl` and the Cloudflare REST API. |
-| `scripts/fly/` | Legacy Fly orchestrators (teardown / migration). |
-| `scripts/cloudflare/` | Legacy Cloudflare DNS (superseded by chrisvouga.dev). |
-| `scripts/decommission-cloudflare-workers.ts` | One-time legacy Cloudflare Workers cleanup. |
-| `scripts/generate-deploy-matrix.ts` | Emits the GitHub Actions build/deploy matrix from `projects.ts`. |
-| `.github/workflows/` | Single `deploy-pipeline` workflow handles bootstrap, build, and deploy. |
+| `src/` | Static site generator (built into `dist/`). |
+| `projects.ts` | Content registry for every project on the portfolio. |
+| `scripts/health-check-urls.ts` | Validates public URLs linked from portfolio content. |
+| `Dockerfile`, `nginx.conf` | Portfolio site container. |
+| `.github/workflows/` | CI (typecheck, link health-check) and image publish. |
 
 ## Common scripts
 
 ```bash
-bun run clone-projects                            # clone every sibling project repo
-bun run typecheck                                 # tsc across the repo
-bun run health-check-urls                         # GET every public URL
-
-bun run cf:setup-zone                             # ensure Cloudflare zone(s) exist + print NS
-bun run cf:sync-dns                               # plan DNS reconciliation
-bun run cf:sync-dns -- --apply                    # apply DNS reconciliation
-bun run cf:sync-redirects                         # plan apex → www redirect
-bun run cf:sync-redirects -- --apply                # apply apex → www redirect
-
-bun run fly:bootstrap                             # idempotent: create missing Fly apps + IPs
-bun run fly:sync-secrets                          # plan secrets push
-bun run fly:deploy -- --id pickflix --sha <sha>   # deploy a single app
-bun run fly:teardown                              # plan orphan Fly app cleanup
-bun run fly:audit-scale                           # verify every Fly app actually scales to zero
-bun run fly:stop-running                          # `fly machines stop` any machine still in state=started
-
-bun run decommission-cloudflare-workers           # dry-run legacy Workers teardown
+bun run typecheck          # tsc across the repo
+bun run build              # generate dist/
+bun run health-check-urls  # GET every public URL in content
+bun run preview            # build and run portfolio container locally
 ```
 
 ## GitHub Actions
@@ -67,145 +44,20 @@ bun run decommission-cloudflare-workers           # dry-run legacy Workers teard
 | --- | --- | --- |
 | `deploy-pipeline.yml` | push to `main`, manual | Typecheck + health-check public URLs. |
 | `publish-image.yml` | push to `main` | Build/push `ghcr.io/crvouga/chrisvouga-portfolio` and notify chrisvouga.dev deploy. |
-| `fly-teardown.yml` | manual | One-time Fly app destruction after single-node cutover. |
 
-Preview the deploy matrix locally:
+## Add a project to the portfolio
 
-```bash
-bun run generate-deploy-matrix -- --pretty
-bun run generate-deploy-matrix -- --id normalizer-app --pretty
-```
+1. Append a `Project` entry to [`projects.ts`](projects.ts) with display fields and `deployment.url` (when public).
+2. Push to `main`. CI typechecks and validates linked URLs.
 
-### `workflow_dispatch` inputs
+## Add or change hosting for a side project
 
-| Input | Default | Notes |
-| --- | --- | --- |
-| `project_id` | _empty_ | Filter the build and deploy matrices to one id. |
-| `image_tag` | `github.sha` | Tag used for both build and deploy. |
-| `apply_dns` | `true` | Uncheck for plan-only DNS reconciliation. |
-| `dry_run` | `false` | Plan-only for zone + Fly bootstrap. |
-| `fly_org` | `personal` | Fly organisation slug. |
-| `force_teardown` | `false` | Bypass the `max_teardowns_per_run` safety cap. |
-| `max_teardowns_per_run` | `1` | Cap on Fly apps destroyed per run. |
+Edit [chrisvouga.dev/services.yaml](https://github.com/crvouga/chrisvouga.dev/blob/main/services.yaml) and the project repo's Dockerfile / `publish-image.yml`. Portfolio only needs the public `deployment.url` (and content fields) to match.
 
-## Secrets (Vault)
-
-All pipeline secrets live in the self-hosted OpenBao store at
-`https://vault.chrisvouga.dev`, not GitHub. Paths are
-`secret/personal/dev` (local) and `secret/personal/prd` (CI/production).
-[`.vault.yaml`](.vault.yaml) at the repo root holds the coordinates (no secrets).
-
-CI authenticates via **GitHub Actions OIDC** — no stored `VAULT_TOKEN` in repo
-settings. Secret-consuming jobs use the composite action
-[`.github/actions/vault-secrets`](.github/actions/vault-secrets/action.yml),
-which calls `hashicorp/vault-action` with JWT auth and exports secrets from
-`secret/data/personal/prd` into the job environment.
-
-[`scripts/check-vault-secrets.ts`](scripts/check-vault-secrets.ts) runs after
-secrets are injected and fails the workflow early if any
-`{ source: { t: "vault" } }` secret named in `projects.ts` is missing.
-Adding a new vault-sourced secret:
-
-1. Add the field in the store (`secret/personal/dev` and `secret/personal/prd`).
-2. Reference it in `projects.ts` via `fromVault("MY_SECRET")`.
-3. Append one line to `.github/actions/vault-secrets/action.yml` for CI.
-4. Push.
-
-| Secret (in store) | Purpose |
-| --- | --- |
-| `FLY_API_TOKEN` | `flyctl auth token`. Used by every Fly orchestrator. |
-| `CLOUDFLARE_API_TOKEN` | API token with `Zone:Edit`, `DNS:Edit`, and **Dynamic URL Redirects** (or Zone Rules) write for the zone. |
-| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare account that owns the zone. |
-| `CLOUDFLARE_SECRETS_STORE_ID` | Only for the legacy Workers decommission script. |
-| Anything referenced by `fromVault(...)` in `projects.ts` | Project-specific secrets — auto-validated and forwarded to Fly. |
-
-`GITHUB_TOKEN` is provided automatically and is used to push images to ghcr.io.
-
-Locally, install the vault CLI wrapper from the `secret-store` repo, then:
+## Local development
 
 ```bash
-vault login hvs.your-token          # or ./scripts/create-dev-token.sh
-vault setup --project personal --config dev
-vault run -- bun run <script>       # same injected env as CI (dev config)
+bun install
+bun run dev    # watch build + serve dist/
+bun run build  # one-shot build
 ```
-
-For production commands locally, use `vault run --config prd -- bun run <script>`.
-
-## One-time cutover (registrar → Cloudflare → Fly)
-
-1. **Populate the store** (`secret/personal/prd`) with the secrets above.
-2. **Dispatch `Deploy Pipeline`** with `dry_run = false`. The
-   `cloudflare-zones` job prints the nameservers Cloudflare assigned to
-   `chrisvouga.dev`.
-3. **Update the registrar** to point `chrisvouga.dev` at those nameservers and
-   wait for delegation to propagate (`dig NS chrisvouga.dev` → Cloudflare values).
-4. **Dispatch `Deploy Pipeline` again** (or push to `main`). Bootstrap is
-   idempotent: zones, Fly apps + IPs, then build and deploy everything.
-5. **Watch `Deploy Pipeline`**: Cloudflare CNAMEs and the apex → www redirect are
-   reconciled, secrets are
-   pushed to Fly, every app is deployed, and the health-check job confirms each
-   public URL returns 200.
-
-## Add a deployable project
-
-1. Append a `Project` entry to [`projects.ts`](projects.ts) with
-   `deployment.t === "public"` and a `deploy: DeploySpec` block (see
-   [Deploy spec fields](#deploy-spec-fields) below).
-2. If the project references any `fromVault("X")` secrets that don't exist yet,
-   add them in the store and append them to `.github/actions/vault-secrets/action.yml`.
-3. Push to `main`. The deploy pipeline runs end-to-end:
-   - `fly-bootstrap` creates the Fly app + dedicated IPv4/IPv6 (idempotent).
-   - `cloudflare-dns-sync` adds the `<sub>.chrisvouga.dev` CNAME.
-   - `build-and-push` builds and pushes the container to `ghcr.io`.
-   - `fly-secrets-sync` validates the vault-injected secrets and stages every
-     declared `SecretSpec`.
-   - `fly-deploy` pulls the freshly-built image from ghcr.io and deploys.
-   - `health-check` confirms the public URL returns 200.
-
-No manual `fly apps create`, no YAML edits — the registry drives everything.
-
-## Remove a deployable project
-
-1. Delete the entry from `projects.ts` (or set `deploy` to `undefined` to keep
-   the portfolio listing as history while removing the infra).
-2. Push to `main`. The deploy pipeline notices the orphan Fly app and the
-   `fly-teardown` job destroys it (`flyctl apps destroy --yes` removes the
-   app, machines, IPs, secrets, and cert in one shot). `cloudflare-dns-sync`
-   prunes the dangling CNAME on the same run.
-
-### Teardown safety cap
-
-`fly-teardown` is capped at **`max_teardowns_per_run = 1`** by default so a
-typo in `projects.ts` can't wipe out the whole org. To remove >1 project in
-a single run:
-
-- Run the workflow via `workflow_dispatch` with `force_teardown: true`, OR
-- Set `max_teardowns_per_run` to the explicit count, OR
-- Land the removals as a series of single-project PRs.
-
-If the cap is hit, the job exits non-zero with the orphan list in the run log.
-
-## Deploy spec fields
-
-```ts
-deploy: {
-  githubRepo: "owner/repo",          // required — used by clone + image build
-  hostname: "<sub>.chrisvouga.dev",  // required — Cloudflare CNAME source
-  port: 8080,                        // required — internal_port in fly.toml
-  build: {                           // optional overrides; sensible defaults
-    checkoutDir: "<dir-name>",       //   default: repo basename
-    context: "<sub-dir>",            //   default: "."
-    dockerfile: "<path>/Dockerfile", //   default: "<context>/Dockerfile"
-  },
-  secrets: [                         // optional — staged via `fly secrets set`
-    fromVault("API_KEY"),                                 // process.env[name] via vault run
-    literal("PORT", "8080"),                              // inline value
-    computed("BASE_URL", (c) => `https://${c.hostname}`), // derived per app
-    generated("SIGNING_KEY", randomHex32),                // set ONCE, preserved
-  ],
-},
-resume: { include: false }          // optional — drop from the resume PDF
-resume: { priority: 100 }           // optional — pin to the top of the resume
-```
-
-That's it — every other piece of automation is generated from `projects.ts`.

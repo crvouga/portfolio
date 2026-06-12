@@ -17,19 +17,7 @@
     "gen": "bun generate-all",
     "generate-resume": "bun run ./src/generate-resume.ts",
     "preview": "docker build -t portfolio-app . && docker run -p 80:80 portfolio-app",
-    "clone-projects": "bun run scripts/clone-projects.ts",
-    "health-check-urls": "bun run scripts/health-check-urls.ts",
-    "generate-deploy-matrix": "bun run scripts/generate-deploy-matrix.ts",
-    "fly:bootstrap": "bun run scripts/fly/bootstrap-apps.ts",
-    "fly:sync-secrets": "bun run scripts/fly/sync-secrets.ts",
-    "fly:deploy": "bun run scripts/fly/deploy-app.ts",
-    "fly:teardown": "bun run scripts/fly/teardown-apps.ts",
-    "fly:audit-scale": "bun run scripts/fly/audit-scale-to-zero.ts",
-    "fly:stop-running": "bun run scripts/fly/audit-scale-to-zero.ts --stop-running",
-    "cf:setup-zone": "bun run scripts/cloudflare/setup-zone.ts",
-    "cf:sync-dns": "bun run scripts/cloudflare/sync-dns.ts",
-    "cf:sync-redirects": "bun run scripts/cloudflare/sync-redirects.ts",
-    "decommission-cloudflare-workers": "bun run scripts/decommission-cloudflare-workers.ts"
+    "health-check-urls": "bun run scripts/health-check-urls.ts"
   },
   "devDependencies": {
     "@fontsource-variable/inter": "^5.2.8",

@@ -1,21 +1,12 @@
 /**
- * Single source of truth for portfolio content AND deployable infra.
+ * Single source of truth for portfolio content.
  *
- *   Portfolio: PROJECTS[] feeds the website, resume, and screenshots.
- *   Infra:     each project's optional `deploy?: DeploySpec` is the ONLY
- *              place that encodes how it's hosted (Fly app, hostname, port,
- *              build context, secrets policy). Everywhere downstream is a
- *              pure iterator over this registry.
+ *   PROJECTS[] feeds the website, resume, and screenshots.
+ *   Runtime hosting for side projects lives in chrisvouga.dev/services.yaml.
  *
- * Adding a deployable project:
- *   - Append a Project with `deployment.t === "public"` and a `deploy` block.
- *   - `deploy.scaleToZero` defaults to true; set false only if the app must stay warm.
- *   - Push to main. CI auto-creates the Fly app + IPs, syncs secrets, deploys.
- *
- * Removing a deployable project:
- *   - Delete the entry. CI auto-tears down the orphan Fly app (DNS + secrets +
- *     certs go with it). A safety cap on the deploy pipeline prevents
- *     accidental mass-destroys.
+ * Adding a hosted side project:
+ *   - Add the service in chrisvouga.dev/services.yaml and its project repo.
+ *   - Append a Project here with display fields and `deployment.url`.
  */
 import { Topic } from "./src/content/topic";
 
@@ -31,78 +22,11 @@ export type Deployment =
   | { t: "not-deployed-yet" }
   | { t: "private" };
 
-// ---------------------------------------------------------------------------
-// Infra types — declarative spec for everything CI does to a deployable app.
-// ---------------------------------------------------------------------------
-
-/** Context passed to `computed` secret sources. */
-export type SecretCtx = {
-  readonly id: string;
-  readonly hostname: string;
-  readonly port: number;
-};
-
-/**
- * Where the value of a Fly secret comes from. The deploy pipeline dispatches
- * on `t` to resolve a value at sync time:
- *
- *   - "vault":     process.env[name], injected by `vault run` in CI (and locally).
- *   - "literal":   inline constant value (e.g. legacy noop placeholders).
- *   - "computed":  derived from the project (deterministic; re-evaluated each sync).
- *   - "generated": random bytes; SET ONCE per app and PRESERVED across deploys
- *                  so things like signed-URL keys aren't invalidated on every push.
- */
-export type SecretSource =
-  | { readonly t: "vault" }
-  | { readonly t: "literal"; readonly value: string }
-  | { readonly t: "computed"; readonly compute: (ctx: SecretCtx) => string }
-  | { readonly t: "generated"; readonly generate: () => string };
-
-export type SecretSpec = {
-  readonly name: string;
-  readonly source: SecretSource;
-};
-
-/**
- * Override how the project's container image is built. Paths are RELATIVE to
- * the cloned repo at `projects/<checkoutDir>/`.
- *
- *   checkoutDir  → defaults to the GitHub repo basename
- *                  (e.g. "crvouga/pickflix-v1" → "pickflix-v1").
- *   context      → defaults to ".".
- *   dockerfile   → defaults to "<context>/Dockerfile".
- */
-export type BuildSpec = {
-  readonly checkoutDir?: string;
-  readonly context?: string;
-  readonly dockerfile?: string;
-};
-
-/** Everything the deploy pipeline needs to host this project on our infra. */
-export type DeploySpec = {
-  readonly githubRepo: string;
-  readonly hostname: string;
-  readonly port: number;
-  readonly build?: BuildSpec;
-  readonly secrets?: readonly SecretSpec[];
-  /**
-   * When true (default), Fly suspends the machine on idle (`min_machines_running = 0`).
-   * When false, one machine stays warm (`min_machines_running = 1`).
-   */
-  readonly scaleToZero?: boolean;
-  /** When true, post-deploy CI health-checks this app's public URL. */
-  readonly healthCheck: boolean;
-};
-
 /** Resume curation overrides. Default: include if `projectToLinkHref` is non-null. */
 export type ResumePolicy = {
   readonly include?: boolean;
   readonly priority?: number;
 };
-
-// ---------------------------------------------------------------------------
-// Project — portfolio + (optionally) infra in one declarative entry.
-// ---------------------------------------------------------------------------
 
 export type Project = {
   readonly id: string;
@@ -116,8 +40,6 @@ export type Project = {
   readonly galleryImageSrc: string[];
   readonly youTubeVideoId?: string;
   readonly topics: Topic[];
-  /** Present iff the project is hosted on our Fly+Cloudflare infra. */
-  readonly deploy?: DeploySpec;
   /** Optional overrides for resume rendering. */
   readonly resume?: ResumePolicy;
 };
@@ -157,28 +79,6 @@ export const projectToLinkHref = (project: Project): string | null => {
   if (project.code.t === "public") return project.code.url;
   return null;
 };
-
-// ---------------------------------------------------------------------------
-// Secret-source helpers — short factories so projects below stay readable.
-// ---------------------------------------------------------------------------
-
-const fromVault = (name: string): SecretSpec => ({
-  name,
-  source: { t: "vault" },
-});
-
-const literal = (name: string, value: string): SecretSpec => ({
-  name,
-  source: { t: "literal", value },
-});
-
-/** Standard moviefinder secrets (TMDB + Twilio). */
-const moviefinderSecrets: readonly SecretSpec[] = [
-  fromVault("TMDB_API_READ_ACCESS_TOKEN"),
-  fromVault("TWILIO_ACCOUNT_SID"),
-  fromVault("TWILIO_AUTH_TOKEN"),
-  fromVault("TWILIO_SERVICE_SID"),
-];
 
 // ---------------------------------------------------------------------------
 // Constants reused inside descriptions.
@@ -334,27 +234,6 @@ export const PROJECTS: readonly Project[] = [
       "express", "heroku", "jest", "material-ui", "nodejs", "postgres",
       "ramda", "react", "redux", "redux-saga", "typescript", "css", "react-query",
     ],
-    deploy: {
-      githubRepo: "crvouga/pickflix-v1",
-      hostname: "pickflix.chrisvouga.dev",
-      port: 9000,
-      healthCheck: true,
-      build: { checkoutDir: "pickflix-v1" },
-      secrets: [
-        // Legacy noop placeholders — the app needs these env vars set to
-        // boot but we no longer hand out real credentials. Kept inline so
-        // this is a single-edit change if the app ever wires real
-        // SendGrid / DB / session secrets again.
-        literal("DATABASE_URL", "noop"),
-        literal("PORT", "9000"),
-        literal("SECRET", "noop"),
-        literal("SEND_GRID_API_KEY", "noop"),
-        literal("SEND_GRID_REGISTERED_EMAIL_ADDRESS", "noop"),
-        literal("SESSION_COOKIE_SECRET", "noop"),
-        literal("YOUTUBE_API_KEY", "noop"),
-        fromVault("TMDB_API_READ_ACCESS_TOKEN"),
-      ],
-    },
   },
   {
     id: "sun-devils",
@@ -384,19 +263,12 @@ export const PROJECTS: readonly Project[] = [
     imageSrc: ["/moviefinder-app-rust-screenshot.optimized.webp"],
     galleryImageSrc: ["/moviefinder-app-rust-screenshot.png"],
     topics: ["rust"],
-    deploy: {
-      githubRepo: "crvouga/moviefinder.app-rust",
-      hostname: "moviefinder-app-rust.chrisvouga.dev",
-      port: 3000,
-      healthCheck: true,
-      secrets: moviefinderSecrets,
-    },
   },
   {
     id: "headless-combobox-svelte-example",
     title: "headless-combobox",
     setting: "side",
-    deployment: { t: "public", url: "https://svelte.headlesscombobox.chrisvouga.dev" },
+    deployment: { t: "public", url: "https://svelte-headlesscombobox.chrisvouga.dev" },
     code: { t: "public", url: "https://github.com/crvouga/headless-combobox" },
     description:
       "A production-ready, headless TypeScript combobox library that's framework-agnostic, zero-dependency, and fully accessible. Enables developers to build custom combobox components in any UI framework while maintaining WCAG compliance and flexibility.",
@@ -404,14 +276,6 @@ export const PROJECTS: readonly Project[] = [
     imageSrc: ["./headless-combobox-screenshot.optimized.webp"],
     galleryImageSrc: ["./headless-combobox-screenshot.png"],
     topics: ["typescript"],
-    deploy: {
-      githubRepo: "crvouga/headless-combobox",
-      hostname: "svelte.headlesscombobox.chrisvouga.dev",
-      port: 80,
-      healthCheck: true,
-      // Dockerfile lives inside a sub-directory of the repo.
-      build: { context: "example/svelte", dockerfile: "example/svelte/Dockerfile" },
-    },
   },
   {
     id: "headless-combobox-docs",
@@ -425,12 +289,6 @@ export const PROJECTS: readonly Project[] = [
     imageSrc: [],
     galleryImageSrc: [],
     topics: ["typescript"],
-    deploy: {
-      githubRepo: "crvouga/headless-combobox",
-      hostname: "headlesscombobox.chrisvouga.dev",
-      port: 80,
-      healthCheck: true,
-    },
   },
   {
     id: "todo-app",
@@ -444,14 +302,6 @@ export const PROJECTS: readonly Project[] = [
     imageSrc: ["/fullstack-todo-app-screenshot.optimized.webp", "/todo.optimized.webp"],
     galleryImageSrc: ["/fullstack-todo-app-screenshot.png", "/todo.png"],
     topics: ["typescript", "vue", "css", "express", "javascript", "tailwind", "nodejs", "mongodb"],
-    deploy: {
-      githubRepo: "crvouga/todo-v1",
-      hostname: "todo.chrisvouga.dev",
-      port: 80,
-      healthCheck: true,
-      // Repo basename is "todo-v1"; explicit so it survives a repo rename.
-      build: { checkoutDir: "todo-v1" },
-    },
   },
   {
     id: "image-service",
@@ -465,12 +315,6 @@ export const PROJECTS: readonly Project[] = [
     imageSrc: ["/image-service-screenshot.optimized.webp"],
     galleryImageSrc: ["/image-service-screenshot.png"],
     topics: ["go"],
-    deploy: {
-      githubRepo: "crvouga/image-service",
-      hostname: "imageservice.chrisvouga.dev",
-      port: 80,
-      healthCheck: true,
-    },
   },
   {
     id: "connect-four",
@@ -491,12 +335,6 @@ export const PROJECTS: readonly Project[] = [
       "css", "greensock", "heroku", "material-ui", "nodejs",
       "ramda", "redux", "redux-saga", "javascript", "socket-io",
     ],
-    deploy: {
-      githubRepo: "crvouga/connect-four",
-      hostname: "connectfour.chrisvouga.dev",
-      port: 80,
-      healthCheck: true,
-    },
   },
 
   {
@@ -598,14 +436,6 @@ export const PROJECTS: readonly Project[] = [
     imageSrc: ["/anime-blog-screenshot.optimized.webp", "/anime.optimized.webp"],
     galleryImageSrc: ["/anime-blog-screenshot.png", "/anime.png"],
     topics: ["css", "javascript", "sanity", "vue", "bootstrap", "graphql", "gridsome"],
-    deploy: {
-      githubRepo: "crvouga/anime",
-      hostname: "anime.chrisvouga.dev",
-      port: 80,
-      healthCheck: true,
-      // Repo basename is "anime"; explicit for clarity.
-      build: { checkoutDir: "anime" },
-    },
   },
   {
     id: "snake-game",
@@ -623,12 +453,6 @@ export const PROJECTS: readonly Project[] = [
       "/snake.png",
     ],
     topics: ["css", "javascript", "ramda", "react"],
-    deploy: {
-      githubRepo: "crvouga/snake",
-      hostname: "snake.chrisvouga.dev",
-      port: 80,
-      healthCheck: true,
-    },
   },
   {
     id: "match-three",
@@ -645,12 +469,6 @@ export const PROJECTS: readonly Project[] = [
       toYouTubeVideoUrl({ youTubeVideoId: "VBrlDgmXSoA", autoplay: true, mute: true }),
     ],
     topics: ["css", "javascript", "ramda", "react", "redux", "redux-saga"],
-    deploy: {
-      githubRepo: "crvouga/match-three",
-      hostname: "matchthree.chrisvouga.dev",
-      port: 80,
-      healthCheck: true,
-    },
   },
 
   {
@@ -665,13 +483,6 @@ export const PROJECTS: readonly Project[] = [
     imageSrc: ["/moviefinder-app-go-screenshot.optimized.webp"],
     galleryImageSrc: ["/moviefinder-app-go-screenshot.png"],
     topics: ["go"],
-    deploy: {
-      githubRepo: "crvouga/moviefinder.app-go",
-      hostname: "moviefinder-app-go.chrisvouga.dev",
-      port: 8080,
-      healthCheck: true,
-      secrets: moviefinderSecrets,
-    },
   },
   {
     id: "moviefinder-app-react",
@@ -685,13 +496,6 @@ export const PROJECTS: readonly Project[] = [
     imageSrc: ["/moviefinder-app-react-screenshot.optimized.webp"],
     galleryImageSrc: ["/moviefinder-app-react-screenshot.png"],
     topics: ["react", "typescript"],
-    deploy: {
-      githubRepo: "crvouga/moviefinder.app-react",
-      hostname: "moviefinder-app-react.chrisvouga.dev",
-      port: 3000,
-      healthCheck: true,
-      secrets: moviefinderSecrets,
-    },
   },
   {
     id: "moviefinder-app-clojurescript",
@@ -705,13 +509,6 @@ export const PROJECTS: readonly Project[] = [
     imageSrc: ["/moviefinder-app-clojurescript-screenshot.optimized.webp"],
     galleryImageSrc: ["/moviefinder-app-clojurescript-screenshot.png"],
     topics: ["clojurescript"],
-    deploy: {
-      githubRepo: "crvouga/moviefinder.app-clojurescript",
-      hostname: "moviefinder-app-clojurescript.chrisvouga.dev",
-      port: 9630,
-      healthCheck: true,
-      secrets: moviefinderSecrets,
-    },
   },
   {
     id: "simon-says",
@@ -728,12 +525,6 @@ export const PROJECTS: readonly Project[] = [
       toYouTubeVideoUrl({ youTubeVideoId: "WrUFzlKL0E0", autoplay: true, mute: true }),
     ],
     topics: ["css", "javascript", "ramda", "react", "redux", "redux-saga"],
-    deploy: {
-      githubRepo: "crvouga/simon-says",
-      hostname: "simonsays.chrisvouga.dev",
-      port: 80,
-      healthCheck: true,
-    },
   },
   {
     id: "cheese",
@@ -760,137 +551,3 @@ export const WORK_PROJECTS: readonly Project[] = PROJECTS.filter(
 export const SIDE_PROJECTS: readonly Project[] = PROJECTS.filter(
   (p) => p.setting === "side",
 );
-
-// ---------------------------------------------------------------------------
-// Infra helpers — pure derivations from the registry above.
-// ---------------------------------------------------------------------------
-
-export type DeployableProject = Project & {
-  readonly deploy: DeploySpec;
-  readonly deployment: Extract<Deployment, { t: "public" }>;
-};
-
-/**
- * A project is deployable iff it has a `deploy` block AND its public-facing
- * deployment URL is the one we manage. Anything `private` /
- * `not-deployed-anymore` / `not-deployed-yet` is intentionally excluded —
- * presence of `deploy` alone is not enough, because we may want to keep
- * legacy infra fields as documentation without re-deploying.
- */
-export function getDeployableProjects(): readonly DeployableProject[] {
-  return PROJECTS.filter(
-    (p): p is DeployableProject => p.deploy != null && p.deployment.t === "public",
-  );
-}
-
-/**
- * Slim record consumed by every infra script. Carries the `deploy` block
- * verbatim so downstream code never has to know about portfolio fields.
- */
-export type InfraTarget = {
-  readonly id: string;
-  readonly title: string;
-  readonly deploy: DeploySpec;
-};
-
-/**
- * The portfolio site itself. NOT a Project entry to avoid self-referencing
- * the listing UI.
- */
-export const PORTFOLIO_INFRA_TARGET: InfraTarget = {
-  id: "portfolio",
-  title: "chrisvouga.dev",
-  deploy: {
-    githubRepo: "crvouga/portfolio",
-    hostname: "www.chrisvouga.dev",
-    port: 80,
-    healthCheck: true,
-  },
-};
-
-/** Apex hostname that should 301 to `PORTFOLIO_INFRA_TARGET.deploy.hostname`. */
-export function portfolioApexHostname(): string {
-  return cloudflareZoneForHostname(PORTFOLIO_INFRA_TARGET.deploy.hostname);
-}
-
-/** Fly app name for an infra target (Fly app names are globally namespaced). */
-export function flyAppName(id: string): string {
-  return `chrisvouga-${id}`;
-}
-
-/** Default true; only set `scaleToZero: false` on deploy specs that stay warm. */
-export function deployScaleToZero(deploy: DeploySpec): boolean {
-  return deploy.scaleToZero !== false;
-}
-
-export function deployHealthCheck(deploy: DeploySpec): boolean {
-  return deploy.healthCheck;
-}
-
-/** Hostnames for Fly apps that suspend on idle (screenshot/health warmup). */
-export function getScaleToZeroHostnames(): ReadonlySet<string> {
-  return new Set(
-    getInfraTargets()
-      .filter((t) => deployHealthCheck(t.deploy) && deployScaleToZero(t.deploy))
-      .map((t) => t.deploy.hostname.toLowerCase()),
-  );
-}
-
-/**
- * Cloudflare zone (apex domain) that should host the DNS record for `hostname`.
- * Single zone today (`chrisvouga.dev`) but the function lets us add more later.
- */
-export function cloudflareZoneForHostname(hostname: string): string {
-  const parts = hostname.split(".");
-  if (parts.length < 2) return hostname;
-  return parts.slice(-2).join(".");
-}
-
-/** Portfolio + every deployable project, as InfraTargets. */
-export function getInfraTargets(): readonly InfraTarget[] {
-  return [
-    PORTFOLIO_INFRA_TARGET,
-    ...getDeployableProjects().map(
-      (p): InfraTarget => ({
-        id: p.id,
-        title: p.title,
-        deploy: p.deploy,
-      }),
-    ),
-  ];
-}
-
-/** Sibling repos to clone into `projects/<dir>` for the build matrix. */
-export function getUniqueCloneRepos(): readonly { repo: string; dir: string }[] {
-  const seen = new Set<string>();
-  const out: { repo: string; dir: string }[] = [];
-  for (const t of getInfraTargets()) {
-    if (t.id === "portfolio") continue;
-    const repo = t.deploy.githubRepo;
-    if (seen.has(repo)) continue;
-    seen.add(repo);
-    const dir = t.deploy.build?.checkoutDir ?? repo.split("/").pop()!;
-    out.push({ repo, dir });
-  }
-  return out;
-}
-
-// ---------------------------------------------------------------------------
-// Secrets aggregation — derived view used by the workflow validator.
-// ---------------------------------------------------------------------------
-
-/**
- * Every secret name across all projects whose source is `vault`. This is
- * the set of secrets the deploy pipeline expects `vault run` to inject into
- * the environment; the `check-vault-secrets.ts` validator uses this list to
- * fail the workflow early if any are missing.
- */
-export function allVaultSecretNames(): readonly string[] {
-  const names = new Set<string>();
-  for (const t of getInfraTargets()) {
-    for (const s of t.deploy.secrets ?? []) {
-      if (s.source.t === "vault") names.add(s.name);
-    }
-  }
-  return [...names].sort();
-}

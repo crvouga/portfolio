@@ -2,7 +2,6 @@ name: Deploy Pipeline
 
 # Portfolio site CI — images deploy via chrisvouga.dev single-node stack.
 # Image publishing: .github/workflows/publish-image.yml
-# Fly teardown (post-migration): .github/workflows/fly-teardown.yml
 
 on:
   push:
@@ -44,7 +43,6 @@ jobs:
       - name: Health-check public URLs
         run: |
           bun run health-check-urls \
-            --no-warmup \
             --timeout-ms 30000 \
             --retries 4 \
             --retry-delay-ms 5000
