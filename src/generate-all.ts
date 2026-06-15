@@ -80,11 +80,11 @@ const tasks = new Listr<Ctx>(
       },
     },
     {
-      title: pc.dim("Warm up sleeping Fly apps"),
+      title: pc.dim("Warm up hosted apps"),
       task: async (_, t) => {
         const t0 = performance.now();
         await warmupScreenshotJobs(screenshotJobs);
-        t.title = `${pc.dim("Warm up sleeping Fly apps")}  ${fmtElapsed(performance.now() - t0)}`;
+        t.title = `${pc.dim("Warm up hosted apps")}  ${fmtElapsed(performance.now() - t0)}`;
       },
     },
     {

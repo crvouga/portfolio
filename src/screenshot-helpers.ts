@@ -8,8 +8,8 @@ export const PUBLIC_DIR = path.resolve("./public");
 
 /** Nav timeout for external sites (env: SCREENSHOT_TIMEOUT_MS). */
 const DEFAULT_NAV_TIMEOUT_MS = readPositiveEnv("SCREENSHOT_TIMEOUT_MS", 45_000);
-/** Nav timeout for chrisvouga.dev-hosted URLs (env: SCREENSHOT_FLY_TIMEOUT_MS). */
-const HOSTED_NAV_TIMEOUT_MS = readPositiveEnv("SCREENSHOT_FLY_TIMEOUT_MS", 45_000);
+/** Nav timeout for chrisvouga.dev-hosted URLs (env: SCREENSHOT_HOSTED_TIMEOUT_MS). */
+const HOSTED_NAV_TIMEOUT_MS = readPositiveEnv("SCREENSHOT_HOSTED_TIMEOUT_MS", 45_000);
 const DEFAULT_MAX_RETRIES = 1;
 const HOSTED_MAX_RETRIES = 1;
 const RETRY_DELAY_MS = readPositiveEnv("SCREENSHOT_RETRY_DELAY_MS", 2_000);
