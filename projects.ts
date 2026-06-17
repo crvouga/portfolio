@@ -510,6 +510,38 @@ export const PROJECTS: readonly Project[] = [
     ],
     topics: ["css", "typescript", "material-ui", "react", "firebase"],
   },
+  {
+    id: "pickflix",
+    title: "Pickflix",
+    setting: "side",
+    deployment: { t: "not-deployed-anymore" },
+    code: { t: "public", url: "https://github.com/crvouga/pickflix-v1" },
+    description:
+      "Social movie discovery platform enabling users to watch trailers, write reviews, and collaborate on movie lists with friends. Features real-time updates and a comprehensive movie database integration.",
+    imageAlt: IMAGE_ALT,
+    imageSrc: ["/pickflix-screenshot.optimized.webp"],
+    galleryImageSrc: [
+      "/pickflix-screenshot.png",
+      toYouTubeVideoUrl({ youTubeVideoId: "-atthbuMFIM", autoplay: true, mute: true }),
+    ],
+    topics: [
+      "express", "heroku", "jest", "material-ui", "nodejs", "postgres",
+      "ramda", "react", "redux", "redux-saga", "typescript", "css", "react-query",
+    ],
+  },
+  {
+    id: "moviefinder-app-go",
+    title: "moviefinder.app (Go)",
+    setting: "side",
+    deployment: { t: "not-deployed-anymore" },
+    code: { t: "public", url: "https://github.com/crvouga/moviefinder.app-go" },
+    description:
+      "Go implementation of the moviefinder.app movie discovery platform.",
+    imageAlt: IMAGE_ALT,
+    imageSrc: ["/moviefinder-app-go-screenshot.optimized.webp"],
+    galleryImageSrc: ["/moviefinder-app-go-screenshot.png"],
+    topics: ["go"],
+  },
 ];
 
 export const WORK_PROJECTS: readonly Project[] = PROJECTS.filter(
