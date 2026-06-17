@@ -298,6 +298,23 @@ export const PROJECTS: readonly Project[] = [
     topics: ["go"],
   },
   {
+    id: "llm-proxy",
+    title: "LLM Proxy",
+    setting: "side",
+    deployment: { t: "public", url: "https://llm-proxy.chrisvouga.dev" },
+    code: { t: "public", url: "https://github.com/crvouga/llm-server" },
+    description:
+      "Self-hosted OpenAI-compatible HTTP proxy that routes requests to configurable upstream APIs, supports custom auth headers (API keys and bearer tokens), and logs traffic to Postgres for analysis, health checks, and cost visibility.",
+    imageAlt: IMAGE_ALT,
+    imageSrc: ["/llm-proxy-screenshot.optimized.webp"],
+    galleryImageSrc: [
+      "/llm-proxy-screenshot.png",
+      toYouTubeVideoUrl({ youTubeVideoId: "Zsrk8x2X2uc", autoplay: true, mute: true }),
+    ],
+    topics: ["typescript", "react", "tailwind", "bun", "postgres", "docker", "nodejs"],
+    resume: { priority: 90 },
+  },
+  {
     id: "connect-four",
     title: "Connect Four: AI & Multiplayer",
     setting: "side",
